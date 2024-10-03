@@ -182,7 +182,7 @@ class NotificationController extends Controller
                 $validTokens,
                 $title,
                 $body,
-                $image ? 'https://www.certifit.in/pominoz/' . $image : null,
+                $image ? 'https://www.certifit.in/crispello/' . $image : null,
                 null,
                 null,
                 null,

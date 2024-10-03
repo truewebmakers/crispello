@@ -69,7 +69,7 @@ class DeliveryController extends Controller
                 if (!$restaurant) {
                     continue;
                 }
-                $restaurant->name = "Pomino'z Pizza";
+                $restaurant->name = "Crispello";
                 if ($user->latitude && $user->longitude && $restaurant->latitude && $restaurant->longitude) {
                     $distance = $this->calculateDistanceWithDuration(['latitude' => $restaurant->latitude, 'longitude' => $restaurant->longitude], ['latitude' => $user->latitude, 'longitude' => $user->longitude]);
                     $order->distance = $distance['distance']['text'];
@@ -139,7 +139,7 @@ class DeliveryController extends Controller
                 if (!$restaurant) {
                     continue;
                 }
-                $restaurant->name = "Pomino'z Pizza";
+                $restaurant->name = "Crispello";
                 if ($user->latitude && $user->longitude && $restaurant->latitude && $restaurant->longitude) {
                     $distance = $this->calculateDistanceWithDuration(['latitude' => $restaurant->latitude, 'longitude' => $restaurant->longitude], ['latitude' => $user->latitude, 'longitude' => $user->longitude]);
                     $order->distance = $distance['distance']['text'];
@@ -227,7 +227,7 @@ class DeliveryController extends Controller
                     'message' => 'Restaurant not found'
                 ], 404);
             }
-            $restaurant->name = "Pomino'z Pizza";
+            $restaurant->name = "Crispello";
             $data = [
                 'order' => $order,
                 'user' => $user,
