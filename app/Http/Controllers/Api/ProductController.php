@@ -1,0 +1,830 @@
+<?php
+
+namespace App\Http\Controllers\Api;
+
+use App\Http\Controllers\Controller;
+use App\Models\combo;
+use App\Models\combo_details;
+use App\Models\home_slider;
+use App\Models\product;
+use App\Models\product_category;
+use App\Models\product_size;
+use App\Models\video;
+use App\Traits\ImageHandleTrait;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Validator;
+
+class ProductController extends Controller
+{
+    use ImageHandleTrait;
+    /**
+     * Add Product.
+     */
+    public function addProduct(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'name' => 'required',
+            'image' => 'required',
+            'veg' => 'required|boolean',
+            'best_seller' => 'boolean',
+            'recommended' => 'boolean',
+            'is_available' => 'boolean',
+            'only_combo' => 'boolean',
+            'actual_price' => 'required|numeric|min:0.01',
+            'selling_price' => 'required|numeric|min:0.01|lte:actual_price',
+            'category_id' => 'required'
+        ], [
+            'selling_price.lte' => 'The selling price must be less than or equal to the actual price.',
+        ]);
+        if ($validator->fails()) {
+            return response()->json([
+                'status_code' => 400,
+                'message' => $validator->messages()
+            ], 400);
+        }
+        DB::beginTransaction();
+        try {
+            $category = product_category::find($request->category_id);
+            if (!$category) {
+                return response()->json([
+                    'status_code' => 404,
+                    'message' => 'Product category not found'
+                ], 404);
+            }
+
+            $name = trim($request->name);
+            $existingProduct = product::whereRaw('LOWER(TRIM(name)) = ?', [strtolower($name)])->where('product_category_id', $category->_id)->first();
+
+            if ($existingProduct) {
+                return response()->json([
+                    'status_code' => 400,
+                    'message' => 'Product already exists in ' . $category->name
+                ], 200);
+            }
+
+            $product = new product();
+            $product->name = $name;
+            $product->veg = $request->veg;
+            $product->actual_price = $request->actual_price;
+            $product->selling_price = $request->selling_price;
+            $product->description =  $request->description;
+            $product->best_seller = $request->has('best_seller') ? $request->best_seller : 0;
+            $product->recommended = $request->has('recommended') ? $request->recommended : 0;
+            $product->is_available = $request->has('is_available') ? $request->is_available : 1;
+            $product->only_combo = $request->has('only_combo') ? $request->only_combo : 0;
+            $product->disable = 0;
+            $product->image = '';
+            $product->product_category_id = $request->category_id;
+
+            $product->save();
+            $image = $this->decodeBase64Image($request->image);
+            $imageName = 'product_' . $product->_id . '.' . $image['extension'];
+            $imagePath = 'public/product/' . $imageName;
+            Storage::put($imagePath, $image['data']);
+
+            $product->image = 'storage/app/public/product/' . $imageName;
+            $product->save();
+
+            DB::commit();
+            return response()->json([
+                'status_code' => 200,
+                'product_id' => $product->_id,
+                'message' => 'Product added successfully'
+            ], 200);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            if (isset($imagePath) && Storage::exists($imagePath)) {
+                Storage::delete($imagePath);
+            }
+            return response()->json([
+                'status_code' => 500,
+                'message' => 'Failed to add product.'
+            ], 500);
+        }
+    }
+
+    /**
+     * Update Product.
+     */
+    public function updateProduct(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'product_id' => 'required',
+            'veg' => 'boolean',
+            'best_seller' => 'boolean',
+            'recommended' => 'boolean',
+            'is_available' => 'boolean',
+            'only_combo' => 'boolean',
+            'category_id' => 'sometimes|min:1',
+            'actual_price' => 'sometimes|numeric|min:0.01',
+            'selling_price' => 'sometimes|numeric|min:0.01',
+        ]);
+        if ($validator->fails()) {
+            return response()->json([
+                'status_code' => 400,
+                'message' => $validator->messages()
+            ], 400);
+        }
+        DB::beginTransaction();
+        try {
+            $product = product::find($request->product_id);
+            if (!$product) {
+                return response()->json([
+                    'status_code' => 404,
+                    'message' => 'Product not found'
+                ], 404);
+            }
+
+            if ($request->has('category_id')) {
+                $category = product_category::find($request->category_id);
+                if (!$category) {
+                    return response()->json([
+                        'status_code' => 404,
+                        'message' => 'Product category not found'
+                    ], 404);
+                }
+                $product->product_category_id = $request->category_id;
+            }
+
+            if ($request->filled('name')) {
+                $name = trim($request->name);
+                $existingProduct = product::whereRaw('LOWER(TRIM(name)) = ?', [strtolower($name)])->where('_id', '!=', $request->product_id)->first();
+
+                if ($existingProduct) {
+                    return response()->json([
+                        'status_code' => 400,
+                        'message' => 'Product already exists in ' . $category->name
+                    ], 200);
+                }
+                $product->name = $name;
+            }
+
+            $oldPrice = $product->selling_price;
+            $oldImage = parse_url($product->image, PHP_URL_PATH);
+            $product->description = $request->description;
+
+            if ($request->has('veg')) {
+                $product->veg = $request->veg;
+            }
+            if ($request->has('actual_price')) {
+                $product->actual_price = $request->actual_price;
+            }
+            if ($request->has('best_seller')) {
+                $product->best_seller = $request->best_seller;
+            }
+            if ($request->has('recommended')) {
+                $product->recommended = $request->recommended;
+            }
+            if ($request->has('only_combo')) {
+                $product->only_combo = $request->only_combo;
+            }
+            if ($request->has('selling_price')) {
+                $product->selling_price = $request->selling_price;
+            }
+            if ($product->selling_price > $product->actual_price) {
+                return response()->json([
+                    'status_code' => 400,
+                    'message' => 'Selling price of product is more than actual price'
+                ], 200);
+            }
+            if ($request->has('is_available')) {
+                if ($request->is_available == 0) {
+                    $existInCombo = combo_details::join('combos', 'combo_details.combo_id', '=', 'combos._id')
+                        ->where('combo_details.product_id', $product->_id)
+                        ->where('combos.disable', 0)
+                        ->exists();
+                    if ($existInCombo) {
+                        return response()->json([
+                            'status_code' => 100,
+                            'message' => 'This product is part of an active combo. Please remove the product from the combo or disable the combo before marking the product as unavailable.'
+                        ], 200);
+                    }
+                }
+                $product->is_available = $request->is_available;
+            }
+            if ($request->filled('image')) {
+                $image = $this->decodeBase64Image($request->image);
+                $imageName = 'product_' . $product->_id . '.' . $image['extension'];
+                $imagePath = 'public/product/' . $imageName;
+                Storage::put($imagePath, $image['data']);
+
+                $path = str_replace('storage/app/', '', $oldImage);
+                if ($path !== $imagePath) {
+                    if ($oldImage && Storage::exists($path)) {
+                        Storage::delete($path);
+                    }
+                }
+                $product->image = 'storage/app/public/product/' . $imageName . '?timestamp=' . time();
+            }
+
+
+            if ($request->has('selling_price')) {
+                $sizeExist = product_size::where('product_id', $product->_id)->exists();
+                if (!$sizeExist) {
+                    $combos = combo::join('combo_details', 'combos._id', '=', 'combo_details.combo_id')
+                        ->where('combo_details.product_id', $product->_id)
+                        ->whereNull('combo_details.size')
+                        ->select('combos._id', 'combos.actual_price', 'combo_details.quantity', 'combo_details.size')
+                        ->get();
+
+                    foreach ($combos as $combo) {
+                        $comboModel = combo::find($combo->_id);
+                        $newTotalPrice = $comboModel->actual_price - ($oldPrice * $combo->quantity) + ($product->selling_price * $combo->quantity);
+                        $comboModel->actual_price = $newTotalPrice;
+                        if ($comboModel->selling_price > $comboModel->actual_price) {
+                            return response()->json([
+                                'status_code' => 100,
+                                'message' => 'Selling price will be more than actual price for combo ' . $comboModel->name . ' if price of the ' . $product->name . ' will change.'
+                            ], 200);
+                        }
+                        $comboModel->save();
+                    }
+                }
+            }
+            $product->save();
+            DB::commit();
+            return response()->json([
+                'status_code' => 200,
+                'message' => 'Product updated successfully'
+            ], 200);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json([
+                'status_code' => 500,
+                'message' => 'Failed to update product.'
+            ], 500);
+        }
+    }
+
+    /**
+     * Delete Product.
+     */
+    public function deleteProduct(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'product_id' => 'required',
+        ]);
+        if ($validator->fails()) {
+            return response()->json([
+                'status_code' => 400,
+                'message' => $validator->messages()
+            ], 400);
+        }
+        DB::beginTransaction();
+        try {
+            $product = product::find($request->product_id);
+            if (!$product) {
+                return response()->json([
+                    'status_code' => 404,
+                    'message' => 'Product not found'
+                ], 404);
+            }
+
+            $product->disable = 1;
+            $product->best_seller = 0;
+            $product->recommended = 0;
+            $product->is_available = 0;
+            $existInCombo = combo_details::join('combos', 'combo_details.combo_id', '=', 'combos._id')
+                ->where('combo_details.product_id', $product->_id)
+                ->where('combos.disable', 0)
+                ->exists();
+            if ($existInCombo) {
+                return response()->json([
+                    'status_code' => 100,
+                    'message' => 'This product is part of an active combo. Please remove the product from the combo or disable the combo before disabling the product.'
+                ], 200);
+            }
+
+            $product->save();
+            DB::commit();
+            return response()->json([
+                'status_code' => 200,
+                'message' => 'Product disabled successfully'
+            ], 200);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json([
+                'status_code' => 500,
+                'message' => 'Failed to disable product.'
+            ], 500);
+        }
+    }
+
+    /**
+     * Get all product by category admin.
+     */
+    public function getAllProductByCategoryAdmin(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'category_id' => 'required',
+        ]);
+        if ($validator->fails()) {
+            return response()->json([
+                'status_code' => 400,
+                'message' => $validator->messages()
+            ], 400);
+        }
+        try {
+            $category = product_category::find($request->category_id);
+
+            if (!$category) {
+                return response()->json([
+                    'status_code' => 404,
+                    'message' => 'Product category not found'
+                ], 404);
+            }
+
+            $products = product::where('product_category_id', $category->_id)->get()
+                ->each(function ($product) {
+                    $product->sizes = product_size::where('product_id', $product->_id)->get()->makeHidden('product_id');
+                });
+
+            return response()->json([
+                'status_code' => 200,
+                'data' => $products,
+                'message' => 'Products retrieved successfully'
+            ], 200);
+        } catch (\Exception $e) {
+            return response()->json([
+                'status_code' => 500,
+                'message' => 'Failed to retrieve products.'
+            ], 500);
+        }
+    }
+
+    /**
+     * Get all product by category customer.
+     */
+    public function getAllProductByCategoryCustomer(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'category_id' => 'required',
+        ]);
+        if ($validator->fails()) {
+            return response()->json([
+                'status_code' => 400,
+                'message' => $validator->messages()
+            ], 400);
+        }
+        try {
+            if ($request->category_id === 'combo') {
+                $products = combo::where('disable', 0)->get()->map(function ($combo) {
+                    $products = combo_details::where('combo_id', $combo->_id)
+                        ->get()
+                        ->map(function ($comboDetail) {
+
+                            $product = product::where('_id', $comboDetail->product_id)
+                                ->select('name', '_id')
+                                ->first();
+                            $productDetail = [
+                                '_id' => $product->_id,
+                                'name' => $product->name,
+                                'quantity' => $comboDetail->quantity,
+                                'size' => null,
+                            ];
+
+                            if ($comboDetail->size) {
+                                $product_size = product_size::where('_id', $comboDetail->size)
+                                    ->select('_id', 'size')
+                                    ->first();
+
+                                if ($product_size) {
+                                    $productDetail['size'] = $product_size->size;
+                                }
+                            }
+                            return $productDetail;
+                        });
+                    // Constructing the description
+                    $description = $products->map(function ($product) {
+                        return $product['quantity'] . ' ' . $product['name'] . ' ' . ($product['size'] ? '(' . $product['size'] . ') ' : '');
+                    })->join('+ ');
+                    // $combo->products = $products;
+                    $combo->description = $description;
+                    $combo->combo = 1;
+                    return $combo;
+                });
+            } else {
+                $category = product_category::find($request->category_id);
+                if (!$category) {
+                    return response()->json([
+                        'status_code' => 404,
+                        'message' => 'Product category not found'
+                    ], 404);
+                }
+
+                $products = product::where('product_category_id', $category->_id)->where('disable', 0)->where('only_combo', 0)->get()
+                    ->each(function ($product) {
+                        $product->combo = 0;
+                        $sizes = product_size::where('product_id', $product->_id)->get()->makeHidden('product_id');
+                        $product->sizes = $sizes;
+                        if ($sizes->isNotEmpty()) {
+                            $firstSize = $sizes->first();
+                            $product->actual_price = $firstSize->actual_price;
+                            $product->selling_price = $firstSize->selling_price;
+                        }
+                    })
+                    ->makeHidden(['disable', 'only_combo']);
+            }
+
+            return response()->json([
+                'status_code' => 200,
+                'data' => $products,
+                'message' => 'Products retrieved successfully'
+            ], 200);
+        } catch (\Exception $e) {
+            return response()->json([
+                'status_code' => 500,
+                'message' => 'Failed to retrieve products.'
+            ], 500);
+        }
+    }
+
+    /**
+     * Get best seller products.
+     */
+    public function getBestSeller()
+    {
+        try {
+            $products = product::where('best_seller', 1)->where('disable', 0)->where('only_combo', 0)->get()
+                ->each(function ($product) {
+                    $product->combo = 0;
+                    $sizes = product_size::where('product_id', $product->_id)->get()->makeHidden('product_id');
+                    $product->sizes = $sizes;
+                    if ($sizes->isNotEmpty()) {
+                        $firstSize = $sizes->first();
+                        $product->actual_price = $firstSize->actual_price;
+                        $product->selling_price = $firstSize->selling_price;
+                    }
+                })
+                ->makeHidden(['disable', 'only_combo']);
+            $combos = combo::where('disable', 0)->where('best_seller', 1)->get()->map(function ($combo) {
+                $products = combo_details::where('combo_id', $combo->_id)
+                    ->get()
+                    ->map(function ($comboDetail) {
+
+                        $product = product::where('_id', $comboDetail->product_id)
+                            ->select('name', '_id')
+                            ->first();
+                        $productDetail = [
+                            '_id' => $product->_id,
+                            'name' => $product->name,
+                            'quantity' => $comboDetail->quantity,
+                            'size' => null,
+                        ];
+
+                        if ($comboDetail->size) {
+                            $product_size = product_size::where('_id', $comboDetail->size)
+                                ->select('_id', 'size')
+                                ->first();
+
+                            if ($product_size) {
+                                $productDetail['size'] = $product_size->size;
+                            }
+                        }
+                        return $productDetail;
+                    });
+                // Constructing the description
+                $description = $products->map(function ($product) {
+                    return $product['quantity'] . ' ' . $product['name'] . ' ' . ($product['size'] ? '(' . $product['size'] . ') ' : '');
+                })->join('+ ');
+                $combo->description = $description;
+                $combo->combo = 1;
+                return $combo;
+            });
+            $data = $products->concat($combos);
+            return response()->json([
+                'status_code' => 200,
+                'data' => $data,
+                'message' => 'Best seller products retrieved successfully'
+            ], 200);
+        } catch (\Exception $e) {
+            return response()->json([
+                'status_code' => 500,
+                'message' => 'Failed to retrieve best seller products.'
+            ], 500);
+        }
+    }
+
+    /**
+     * Get recommended products.
+     */
+    public function getRecommendeds()
+    {
+        try {
+            $products = product::where('recommended', 1)->where('disable', 0)->where('only_combo', 0)->get()
+                ->each(function ($product) {
+                    $product->combo = 0;
+                    $sizes = product_size::where('product_id', $product->_id)->get()->makeHidden('product_id');
+                    $product->sizes = $sizes;
+                    if ($sizes->isNotEmpty()) {
+                        $firstSize = $sizes->first();
+                        $product->actual_price = $firstSize->actual_price;
+                        $product->selling_price = $firstSize->selling_price;
+                    }
+                })
+                ->makeHidden(['disable', 'only_combo']);
+
+            $combos = combo::where('disable', 0)->where('recommended', 1)->get()->map(function ($combo) {
+                $products = combo_details::where('combo_id', $combo->_id)
+                    ->get()
+                    ->map(function ($comboDetail) {
+
+                        $product = product::where('_id', $comboDetail->product_id)
+                            ->select('name', '_id')
+                            ->first();
+                        $productDetail = [
+                            '_id' => $product->_id,
+                            'name' => $product->name,
+                            'quantity' => $comboDetail->quantity,
+                            'size' => null,
+                        ];
+
+                        if ($comboDetail->size) {
+                            $product_size = product_size::where('_id', $comboDetail->size)
+                                ->select('_id', 'size')
+                                ->first();
+
+                            if ($product_size) {
+                                $productDetail['size'] = $product_size->size;
+                            }
+                        }
+                        return $productDetail;
+                    });
+                // Constructing the description
+                $description = $products->map(function ($product) {
+                    return $product['quantity'] . ' ' . $product['name'] . ' ' . ($product['size'] ? '(' . $product['size'] . ') ' : '');
+                })->join('+ ');
+                $combo->description = $description;
+                $combo->combo = 1;
+                return $combo;
+            });
+            $data = $products->concat($combos);
+            return response()->json([
+                'status_code' => 200,
+                'data' => $data,
+                'message' => 'Recommended products retrieved successfully'
+            ], 200);
+        } catch (\Exception $e) {
+            return response()->json([
+                'status_code' => 500,
+                'message' => 'Failed to retrieve recommended products.'
+            ], 500);
+        }
+    }
+
+    /**
+     * Get serached products.
+     */
+    public function searchProduct(Request $request)
+    {
+        try {
+            if ($request->has('value')) {
+                $value = $request->value;
+                $products = product::where('name', 'LIKE', "%$value%")->where('disable', 0)->where('only_combo', 0)->get()
+                    ->each(function ($product) {
+                        $product->combo = 0;
+                        $sizes = product_size::where('product_id', $product->_id)->get()->makeHidden('product_id');
+                        $product->sizes = $sizes;
+                        if ($sizes->isNotEmpty()) {
+                            $firstSize = $sizes->first();
+                            $product->actual_price = $firstSize->actual_price;
+                            $product->selling_price = $firstSize->selling_price;
+                        }
+                    })
+                    ->makeHidden(['disable', 'only_combo']);
+
+                $combos = combo::where('disable', 0)->where('name', 'LIKE', "%$value%")->get()->map(function ($combo) {
+                    $products = combo_details::where('combo_id', $combo->_id)
+                        ->get()
+                        ->map(function ($comboDetail) {
+
+                            $product = product::where('_id', $comboDetail->product_id)
+                                ->select('name', '_id')
+                                ->first();
+                            $productDetail = [
+                                '_id' => $product->_id,
+                                'name' => $product->name,
+                                'quantity' => $comboDetail->quantity,
+                                'size' => null,
+                            ];
+
+                            if ($comboDetail->size) {
+                                $product_size = product_size::where('_id', $comboDetail->size)
+                                    ->select('_id', 'size')
+                                    ->first();
+
+                                if ($product_size) {
+                                    $productDetail['size'] = $product_size->size;
+                                }
+                            }
+                            return $productDetail;
+                        });
+                    // Constructing the description
+                    $description = $products->map(function ($product) {
+                        return $product['quantity'] . ' ' . $product['name'] . ' ' . ($product['size'] ? '(' . $product['size'] . ') ' : '');
+                    })->join('+ ');
+                    $combo->description = $description;
+                    $combo->combo = 1;
+                    return $combo;
+                });
+            } else {
+                $products = product::where('disable', 0)->where('only_combo', 0)->get()
+                    ->each(function ($product) {
+                        $product->combo = 0;
+                        $sizes = product_size::where('product_id', $product->_id)->get()->makeHidden('product_id');
+                        $product->sizes = $sizes;
+                        if ($sizes->isNotEmpty()) {
+                            $firstSize = $sizes->first();
+                            $product->actual_price = $firstSize->actual_price;
+                            $product->selling_price = $firstSize->selling_price;
+                        }
+                    })
+                    ->makeHidden(['disable', 'only_combo']);
+
+                $combos = combo::where('disable', 0)->get()->map(function ($combo) {
+                    $products = combo_details::where('combo_id', $combo->_id)
+                        ->get()
+                        ->map(function ($comboDetail) {
+
+                            $product = product::where('_id', $comboDetail->product_id)
+                                ->select('name', '_id')
+                                ->first();
+                            $productDetail = [
+                                '_id' => $product->_id,
+                                'name' => $product->name,
+                                'quantity' => $comboDetail->quantity,
+                                'size' => null,
+                            ];
+
+                            if ($comboDetail->size) {
+                                $product_size = product_size::where('_id', $comboDetail->size)
+                                    ->select('_id', 'size')
+                                    ->first();
+
+                                if ($product_size) {
+                                    $productDetail['size'] = $product_size->size;
+                                }
+                            }
+                            return $productDetail;
+                        }); // Constructing the description
+                    $description = $products->map(function ($product) {
+                        return $product['quantity'] . ' ' . $product['name'] . ' ' . ($product['size'] ? '(' . $product['size'] . ') ' : '');
+                    })->join('+ ');
+                    $combo->description = $description;
+                    $combo->combo = 1;
+                    return $combo;
+                });
+            }
+            $data = $products->concat($combos);
+            return response()->json([
+                'status_code' => 200,
+                'data' => $data,
+                'message' => 'Searched products retrieved successfully'
+            ], 200);
+        } catch (\Exception $e) {
+            return response()->json([
+                'status_code' => 500,
+                'message' => 'Failed to retrieve searched products.'
+            ], 500);
+        }
+    }
+
+    /**
+     * Get all home screen details (product category , recommended , best seller , slider , videos , ).
+     */
+    public function getAllHomeDetails()
+    {
+        try {
+
+            //sliders
+            $sliders = home_slider::all();
+
+            //videos
+            $videos = video::all();
+
+            //product categories
+            $categories = product_category::whereHas('products', function (Builder $query) {
+                $query->where('disable', 0)
+                    ->where('only_combo', 0);
+            })->get();
+
+            //best sellers
+            $best_seller_products = product::where('best_seller', 1)->where('disable', 0)->where('only_combo', 0)->get()
+                ->each(function ($product) {
+                    $product->combo = 0;
+                    $sizes = product_size::where('product_id', $product->_id)->get()->makeHidden('product_id');
+                    $product->sizes = $sizes;
+                    if ($sizes->isNotEmpty()) {
+                        $firstSize = $sizes->first();
+                        $product->actual_price = $firstSize->actual_price;
+                        $product->selling_price = $firstSize->selling_price;
+                    }
+                })
+                ->makeHidden(['disable', 'only_combo']);
+            $best_seller_combos = combo::where('disable', 0)->where('best_seller', 1)->get()->map(function ($combo) {
+                $products = combo_details::where('combo_id', $combo->_id)
+                    ->get()
+                    ->map(function ($comboDetail) {
+
+                        $product = product::where('_id', $comboDetail->product_id)
+                            ->select('name', '_id')
+                            ->first();
+                        $productDetail = [
+                            '_id' => $product->_id,
+                            'name' => $product->name,
+                            'quantity' => $comboDetail->quantity,
+                            'size' => null,
+                        ];
+
+                        if ($comboDetail->size) {
+                            $product_size = product_size::where('_id', $comboDetail->size)
+                                ->select('_id', 'size')
+                                ->first();
+
+                            if ($product_size) {
+                                $productDetail['size'] = $product_size->size;
+                            }
+                        }
+                        return $productDetail;
+                    });
+                // Constructing the description
+                $description = $products->map(function ($product) {
+                    return $product['quantity'] . ' ' . $product['name'] . ' ' . ($product['size'] ? '(' . $product['size'] . ') ' : '');
+                })->join('+ ');
+                $combo->description = $description;
+                $combo->combo = 1;
+                return $combo;
+            });
+            $best_seller_data = $best_seller_products->concat($best_seller_combos);
+
+            //recommended products
+            $recommended_products = product::where('recommended', 1)->where('disable', 0)->where('only_combo', 0)->get()
+                ->each(function ($product) {
+                    $product->combo = 0;
+                    $sizes = product_size::where('product_id', $product->_id)->get()->makeHidden('product_id');
+                    $product->sizes = $sizes;
+                    if ($sizes->isNotEmpty()) {
+                        $firstSize = $sizes->first();
+                        $product->actual_price = $firstSize->actual_price;
+                        $product->selling_price = $firstSize->selling_price;
+                    }
+                })
+                ->makeHidden(['disable', 'only_combo']);
+
+            $recommended_combos = combo::where('disable', 0)->where('recommended', 1)->get()->map(function ($combo) {
+                $products = combo_details::where('combo_id', $combo->_id)
+                    ->get()
+                    ->map(function ($comboDetail) {
+
+                        $product = product::where('_id', $comboDetail->product_id)
+                            ->select('name', '_id')
+                            ->first();
+                        $productDetail = [
+                            '_id' => $product->_id,
+                            'name' => $product->name,
+                            'quantity' => $comboDetail->quantity,
+                            'size' => null,
+                        ];
+
+                        if ($comboDetail->size) {
+                            $product_size = product_size::where('_id', $comboDetail->size)
+                                ->select('_id', 'size')
+                                ->first();
+
+                            if ($product_size) {
+                                $productDetail['size'] = $product_size->size;
+                            }
+                        }
+                        return $productDetail;
+                    });
+                // Constructing the description
+                $description = $products->map(function ($product) {
+                    return $product['quantity'] . ' ' . $product['name'] . ' ' . ($product['size'] ? '(' . $product['size'] . ') ' : '');
+                })->join('+ ');
+                $combo->description = $description;
+                $combo->combo = 1;
+                return $combo;
+            });
+            $recommended_data = $recommended_products->concat($recommended_combos);
+
+
+            return response()->json([
+                'status_code' => 200,
+                'sliders' => $sliders,
+                'videos' => $videos,
+                'product_categories' => $categories,
+                'best_sellers' => $best_seller_data,
+                'recommended_products' => $recommended_data,
+                'message' => 'Home screen details retrieved successfully'
+            ], 200);
+        } catch (\Exception $e) {
+            return response()->json([
+                'status_code' => 500,
+                'message' => 'Failed to retrieve home screen details.'
+            ], 500);
+        }
+    }
+}
