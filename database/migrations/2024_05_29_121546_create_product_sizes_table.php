@@ -14,8 +14,14 @@ return new class extends Migration
         Schema::create('product_sizes', function (Blueprint $table) {
             $table->id('_id');
             $table->mediumText('size')->nullable();
-            $table->tinyText('actual_price')->nullable();
-            $table->tinyText('selling_price')->nullable();
+            // $table->tinyText('actual_price')->nullable();
+            // $table->tinyText('selling_price')->nullable();
+            $table->tinyText('delivery_actual_price')->nullable();
+            $table->tinyText('delivery_selling_price')->nullable();
+            $table->tinyText('pickup_actual_price')->nullable();
+            $table->tinyText('pickup_selling_price')->nullable();
+            $table->tinyText('dinein_actual_price')->nullable();
+            $table->tinyText('dinein_selling_price')->nullable();
             $table->unsignedBigInteger('product_id')->nullable();
             $table->foreign('product_id')->references('_id')->on('products');
             $table->timestamps();

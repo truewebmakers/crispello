@@ -16,8 +16,12 @@ return new class extends Migration
             $table->mediumText('name')->nullable();
             $table->mediumText('description')->nullable();
             $table->boolean('veg')->default(1)->comment('1:Veg 0:Non Veg')->nullable();
-            $table->tinyText('actual_price')->nullable();
-            $table->tinyText('selling_price')->nullable();
+            $table->tinyText('delivery_actual_price')->nullable();
+            $table->tinyText('delivery_selling_price')->nullable();
+            $table->tinyText('pickup_actual_price')->nullable();
+            $table->tinyText('pickup_selling_price')->nullable();
+            $table->tinyText('dinein_actual_price')->nullable();
+            $table->tinyText('dinein_selling_price')->nullable();
             $table->mediumText('image')->nullable();
             $table->boolean('best_seller')->default(0)->comment('0:not best seller,1:best seller')->nullable();
             $table->boolean('recommended')->default(0)->comment('0:not recommended,1:recommended')->nullable();

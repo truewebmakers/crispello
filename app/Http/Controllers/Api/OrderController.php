@@ -37,9 +37,9 @@ class OrderController extends Controller
     {
         $validator = Validator::make($request->all(), [
             'cart_id' => 'required',
-            'order_type' => 'required|in:Home delivery,Dine-in,Takeaway',
-            'table_no' => 'required_if:order_type,Dine-in',
-            'address_id' => 'required_if:order_type,Home delivery',
+            'order_type' => 'required|in:Delivery,Dine In,Pickup',
+            'table_no' => 'required_if:order_type,Dine In',
+            'address_id' => 'required_if:order_type,Delivery',
             'payment_method' => 'sometimes|boolean',
             'total' => 'required',
             'paid' => 'required|boolean'
@@ -62,10 +62,10 @@ class OrderController extends Controller
             if ($request->has('order_type')) {
                 $cart->order_type = $request->order_type;
             }
-            if ($cart->order_type === 'Dine-in' && $request->has('table_no')) {
+            if ($cart->order_type === 'Dine In' && $request->has('table_no')) {
                 $cart->table_no = $request->table_no;
                 $cart->address_id = null;
-            } else if ($cart->order_type === 'Home delivery' && $request->has('address_id')) {
+            } else if ($cart->order_type === 'Delivery' && $request->has('address_id')) {
                 $address = address::find($request->address_id);
                 if (!$address) {
                     return response()->json([
@@ -75,12 +75,12 @@ class OrderController extends Controller
                 }
                 $cart->address_id = $request->address_id;
                 $cart->table_no = null;
-            } else if ($cart->order_type === 'Takeaway') {
+            } else if ($cart->order_type === 'Pickup') {
                 $cart->address_id = null;
                 $cart->table_no = null;
             }
             if ($request->has('payment_method')) {
-                if ($cart->order_type === 'Dine-in') {
+                if ($cart->order_type === 'Dine In') {
                     if ($request->payment_method) {
                         return response()->json([
                             'status_code' => 400,
@@ -119,16 +119,16 @@ class OrderController extends Controller
             if ($cart->payment_method === 1) {
                 $order->payment_id = $request->payment_id;
             }
-            if ($cart->order_type === 'Dine-in') {
+            if ($cart->order_type === 'Dine In') {
                 if ($cart->table_no) {
                     $order->table_no = $cart->table_no;
                 } else {
                     return response()->json([
                         'status_code' => 400,
-                        'message' => 'Table no is required when order type is Dine-in'
+                        'message' => 'Table no is required when order type is Dine In'
                     ], 400);
                 }
-            } else if ($cart->order_type === 'Home delivery') {
+            } else if ($cart->order_type === 'Delivery') {
                 if ($cart->address_id) {
                     $address = address::find($cart->address_id);
                     $order->location = $address->location;
@@ -140,7 +140,7 @@ class OrderController extends Controller
                 } else {
                     return response()->json([
                         'status_code' => 400,
-                        'message' => 'Address is required when order type is Home delivery'
+                        'message' => 'Address is required when order type is Delivery'
                     ], 400);
                 }
             }
@@ -198,7 +198,7 @@ class OrderController extends Controller
             cart_product::where('cart_id', $cart->_id)->delete();
             $cart->coupon_id = null;
             $cart->table_no = null;
-            $cart->order_type = 'Home delivery';
+            $cart->order_type = 'Delivery';
             $cart->payment_method = 0;
             $defaultAddress = address::where('user_id', $cart->user_id)->where('is_default', 1)->first();
             $cart->address_id = $defaultAddress ? $defaultAddress->_id : null;
@@ -240,7 +240,7 @@ class OrderController extends Controller
                     );
                 }
             }
-            if ($request->order_type === 'Home delivery') {
+            if ($request->order_type === 'Delivery') {
                 $restaurant_location = admin::select('_id', 'latitude', 'longitude')->first();
                 if ($restaurant_location->latitude && $restaurant_location->longitude) {
                     $drivers = $this->getDriversList($order->_id, $restaurant_location->latitude, $restaurant_location->longitude);
@@ -574,9 +574,9 @@ class OrderController extends Controller
                         $order->user_name = $user->name;
                         $order->user_phoneno = $user->phoneno;
                     }
-                    if ($order->order_type === 'Dine-in') {
+                    if ($order->order_type === 'Dine In') {
                         $order->makeHidden(['longitude', 'latitude', 'location', 'house_no', 'area', 'options_to_reach', 'coupon_id']);
-                    } else if ($order->order_type === 'Home delivery') {
+                    } else if ($order->order_type === 'Delivery') {
                         $address = (object)[
                             'longitude' => $order->longitude,
                             'latitude' => $order->latitude,
@@ -587,7 +587,7 @@ class OrderController extends Controller
                         ];
                         $order->address = $address;
                         $order->makeHidden(['table_no', 'longitude', 'latitude', 'location', 'house_no', 'area', 'options_to_reach', 'coupon_id']);
-                    } else if ($order->order_type === 'Takeaway') {
+                    } else if ($order->order_type === 'Pickup') {
                         $order->makeHidden(['longitude', 'latitude', 'location', 'house_no', 'area', 'options_to_reach', 'table_no', 'coupon_id']);
                     } else {
                         $order->makeHidden('coupon_id');
@@ -638,11 +638,11 @@ class OrderController extends Controller
             }
             $orders = order::where('user_id', $user->_id)->orderBy('created_at', 'desc')->get()
                 ->each(function ($order) {
-                    // if ($order->order_type === 'Dine-in') {
+                    // if ($order->order_type === 'Dine In') {
                     //     $order->makeHidden(['longitude', 'latitude','location', 'house_no', 'area', 'options_to_reach', 'coupon_id']);
-                    // } else if ($order->order_type === 'Home delivery') {
+                    // } else if ($order->order_type === 'Delivery') {
                     //     $order->makeHidden(['table_no', 'longitude', 'latitude','location', 'house_no', 'area', 'options_to_reach', 'coupon_id']);
-                    // } else if ($order->order_type === 'Takeaway') {
+                    // } else if ($order->order_type === 'Pickup') {
                     //     $order->makeHidsden(['longitude', 'latitude','location', 'house_no', 'area', 'options_to_reach', 'table_no', 'coupon_id']);
                     // } else {
                     //     $order->makeHidden('coupon_id');
@@ -768,10 +768,10 @@ class OrderController extends Controller
                     'message' => 'Order not found'
                 ], 404);
             }
-            if ($order->order_type !== 'Home delivery') {
+            if ($order->order_type !== 'Delivery') {
                 return response()->json([
                     'status_code' => 400,
-                    'message' => 'You can only hire driver when order type is home delivery'
+                    'message' => 'You can only hire driver when order type is Delivery'
                 ], 200);
             }
 

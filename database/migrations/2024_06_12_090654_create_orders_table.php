@@ -20,7 +20,7 @@ return new class extends Migration
             $table->enum('order_status', ['pending', 'accepted', 'preparing', 'dispatched', 'delivered', 'cancelled'])->default('pending')->nullable();
             $table->timestamp('order_date')->useCurrent()->nullable();
             $table->boolean('paid')->default(0)->nullable()->comment('0:not paid,1: paid')->nullable();
-            $table->enum('order_type', ['Dine-in', 'Takeaway', 'Home delivery'])->nullable();
+            $table->enum('order_type', ['Dine In', 'Pickup', 'Delivery'])->nullable();
             $table->boolean('payment_method')->nullable()->comment('0:cod or pay at hotel,1:payment gateway')->nullable();
             $table->tinyText('payment_id')->nullable();
             $table->tinyText('table_no')->nullable();

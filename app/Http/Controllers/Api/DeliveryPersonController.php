@@ -291,10 +291,10 @@ class DeliveryPersonController extends Controller
                     'message' => 'Order not found'
                 ], 404);
             }
-            if ($order->order_type !== 'Home delivery') {
+            if ($order->order_type !== 'Delivery') {
                 return response()->json([
                     'status_code' => 400,
-                    'message' => 'You can only hire drivers when order type is home delivery'
+                    'message' => 'You can only hire drivers when order type is Delivery'
                 ], 200);
             }
             $drivers = delivery_driver::where('online', 1)->whereNotNull('latitude')->whereNotNull('longitude')->get();

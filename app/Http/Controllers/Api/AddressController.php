@@ -69,7 +69,7 @@ class AddressController extends Controller
             $address->save();
 
             if ($address->is_default === 1) {
-                $cart = cart::where('user_id', $user->_id)->where('order_type', 'Home delivery')->first();
+                $cart = cart::where('user_id', $user->_id)->where('order_type', 'Delivery')->first();
                 if ($cart) {
                     $cart->address_id = $address->_id;
                     $cart->save();
@@ -140,7 +140,7 @@ class AddressController extends Controller
             if ($request->has('options_to_reach')) {
                 $address->options_to_reach = $request->options_to_reach;
             }
-            $cart = cart::where('user_id', $address->user_id)->where('order_type', 'Home delivery')->first();
+            $cart = cart::where('user_id', $address->user_id)->where('order_type', 'Delivery')->first();
             if ($request->has('default')) {
                 $addressCount = address::where('user_id', $address->user_id)->count();
                 if ($addressCount > 1) {
@@ -207,7 +207,7 @@ class AddressController extends Controller
                     'message' => 'Address not Found'
                 ], 404);
             }
-            $cart = cart::where('user_id', $address->user_id)->where('order_type', 'Home delivery')->first();
+            $cart = cart::where('user_id', $address->user_id)->where('order_type', 'Delivery')->first();
             if ($address->is_default === 1) {
                 $newDefaultAddress = address::where('user_id', $address->user_id)->orderBy('created_at', 'asc')->where('_id', '!=', $address->_id)->first();
                 if ($newDefaultAddress) {

@@ -400,9 +400,9 @@ class CartController extends Controller
     {
         $validator = Validator::make($request->all(), [
             'cart_id' => 'required',
-            // 'order_type' => 'in:Home delivery,Dine-in,Takeaway',
-            // 'table_no' => 'required_if:order_type,Dine-in',
-            // 'address_id' => 'required_if:order_type,Home delivery|integer',
+            // 'order_type' => 'in:Delivery,Dine In,Pickup',
+            // 'table_no' => 'required_if:order_type,Dine In',
+            // 'address_id' => 'required_if:order_type,Delivery|integer',
             // 'payment_method' => 'sometimes|boolean'
         ]);
         if ($validator->fails()) {
@@ -428,17 +428,17 @@ class CartController extends Controller
                         'message' => 'Address not found.'
                     ], 404);
                 }
-                $cart->order_type = 'Home delivery';
+                $cart->order_type = 'Delivery';
                 $cart->address_id = $request->address_id;
                 $cart->table_no = null;
             }
             // if ($request->has('order_type')) {
             //     $cart->order_type = $request->order_type;
             // }
-            // if ($cart->order_type === 'Dine-in' && $request->has('table_no')) {
+            // if ($cart->order_type === 'Dine In' && $request->has('table_no')) {
             //     $cart->table_no = $request->table_no;
             //     $cart->address_id = null;
-            // } else if ($cart->order_type === 'Home delivery' && $request->has('address_id')) {
+            // } else if ($cart->order_type === 'Delivery' && $request->has('address_id')) {
             //     $address = address::find($request->address_id);
             //     if (!$address) {
             //         return response()->json([
@@ -448,12 +448,12 @@ class CartController extends Controller
             //     }
             //     $cart->address_id = $request->address_id;
             //     $cart->table_no = null;
-            // } else if ($cart->order_type === 'Takeaway') {
+            // } else if ($cart->order_type === 'Pickup') {
             //     $cart->address_id = null;
             //     $cart->table_no = null;
             // }
             // if ($request->has('payment_method')) {
-            //     if ($cart->order_type === 'Dine-in') {
+            //     if ($cart->order_type === 'Dine In') {
             //         if ($request->payment_method) {
             //             return response()->json([
             //                 'status_code' => 400,

@@ -17,7 +17,7 @@ return new class extends Migration
             $table->unsignedBigInteger('address_id')->nullable();
             $table->unsignedBigInteger('coupon_id')->nullable();
             $table->tinyText('table_no')->nullable();
-            $table->enum('order_type', ['Dine-in', 'Takeaway', 'Home delivery'])->default('Home delivery')->nullable();
+            $table->enum('order_type', ['Dine In', 'Pickup', 'Delivery'])->default('Delivery')->nullable();
             $table->boolean('payment_method')->default(0)->nullable()->comment('0:cod or pay at hotel,1:payment gateway');
             $table->foreign('user_id')->references('_id')->on('users');
             $table->foreign('address_id')->references('_id')->on('addresses');
