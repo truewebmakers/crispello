@@ -18,7 +18,7 @@ use App\Http\Controllers\Api\ProductController;
 use App\Http\Controllers\Api\ProductSizeController;
 use App\Http\Controllers\Api\UserController;
 use App\Http\Controllers\Api\VideoController;
-use App\Http\Controllers\Api\ReferralCampaignController;
+use App\Http\Controllers\Api\{ReferralCampaignController,DeliveryPartnerFareSettingController};
 
 
 use Illuminate\Support\Facades\Route;
@@ -53,6 +53,8 @@ Route::prefix('user')->middleware(['auth:user', 'scope:user'])->group(function (
     Route::get('product/getbestsellers', [ProductController::class, 'getBestSeller']);
     Route::get('product/getrecommendeds', [ProductController::class, 'getRecommendeds']);
     Route::get('product/search', [ProductController::class, 'searchProduct']);
+
+
 
     //profile
     Route::post('profile/update', [UserController::class, 'updateProfile']);
@@ -94,6 +96,22 @@ Route::prefix('user')->middleware(['auth:user', 'scope:user'])->group(function (
     //notification
     Route::get('notification/getall', [NotificationController::class, 'getNotifications']);
     Route::post('notification/read', [NotificationController::class, 'readNotification']);
+
+
+
+    Route::post('referral/delete/{id}', [ReferralCampaignController::class, 'delete']);
+    Route::post('referral/log/store', [ReferralCampaignController::class, 'referralLog']);
+
+    Route::get('referral/get/code', [ReferralCampaignController::class, 'fetchDataWithCode']);
+
+    // customer Wallet
+    Route::post('customer/wallet/store', [ReferralCampaignController::class, 'CustomerWallet']);
+    Route::get('customer/wallet/get/{user_id}', [ReferralCampaignController::class, 'CustomerWalletFetch']);
+
+    // delivery partner log
+    Route::post('delivery/fare/log', [DeliveryPartnerFareSettingController::class, 'DeliveryPartnerStorelogs']);
+    Route::get('delivery/fare/get/{partner_id}', [DeliveryPartnerFareSettingController::class, 'DeliveryPartnerStorelogsget']);
+
 });
 
 //admin
@@ -124,6 +142,7 @@ Route::prefix('admin')->middleware(['auth:admin', 'scope:admin'])->group(functio
     Route::post('product/update', [ProductController::class, 'updateProduct']);
     Route::post('product/delete', [ProductController::class, 'deleteProduct']);
     Route::get('product/getproductsbycategory', [ProductController::class, 'getAllProductByCategoryAdmin']);
+    Route::get('product/getallproducts', [ProductController::class, 'getallproductsrelated']);
 
     //product size
     Route::post('product/size/add', [ProductSizeController::class, 'addProductSize']);
@@ -172,6 +191,14 @@ Route::prefix('admin')->middleware(['auth:admin', 'scope:admin'])->group(functio
     Route::post('delivery/request/send', [OrderController::class, 'sendDeliveryRequest']);
     Route::post('delivery/request/cancel', [OrderController::class, 'cancelDeliveryRequest']);
 
+    // Delivery fare setting
+    Route::post('fare/setting/add', [DeliveryPartnerFareSettingController::class, 'store']);
+    Route::post('fare/setting/update/{id}', [DeliveryPartnerFareSettingController::class, 'update']);
+    Route::get('fare/setting/get', [DeliveryPartnerFareSettingController::class, 'index']);
+
+
+
+
 
     // Referral
 
@@ -210,4 +237,11 @@ Route::prefix('delivery')->middleware(['auth:delivery_driver', 'scope:delivery_d
     Route::get('getall', [DeliveryController::class, 'getAllCompletedAndRejectedDeliveries']);
     Route::get('request/get',[DeliveryController::class,'getDeliveryRequest']);
     Route::post('request/status/change',[DeliveryController::class,'changeDeliveryRequestStatus']);
+
+
+    Route::get('log/getall', [DeliveryPartnerFareSettingController::class, 'DeliveryPartnerStorelogsget']);
+    Route::get('log/store', [DeliveryPartnerFareSettingController::class, 'DeliveryPartnerStorelogs']);
+
+
+
 });

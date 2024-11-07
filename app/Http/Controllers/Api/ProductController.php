@@ -9,14 +9,14 @@ use App\Models\home_slider;
 use App\Models\product;
 use App\Models\product_category;
 use App\Models\product_size;
-use App\Models\video;
+use App\Models\{video,RelatedProducts};
 use App\Traits\ImageHandleTrait;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
-
+use Illuminate\Support\Facades\Auth;
 class ProductController extends Controller
 {
     use ImageHandleTrait;
@@ -25,6 +25,8 @@ class ProductController extends Controller
      */
     public function addProduct(Request $request)
     {
+
+
         $validator = Validator::make($request->all(), [
             'name' => 'required',
             'image' => 'required',
@@ -52,6 +54,14 @@ class ProductController extends Controller
             ], 400);
         }
         DB::beginTransaction();
+
+
+
+
+
+
+
+
         try {
             $category = product_category::find($request->category_id);
             if (!$category) {
@@ -97,6 +107,19 @@ class ProductController extends Controller
 
             $product->image = 'storage/app/public/product/' . $imageName;
             $product->save();
+
+
+            $relatedProductsIds = $request->input('related_product_ids');
+
+            if(!empty($relatedProductsIds)){
+                foreach($relatedProductsIds as $relatedProduct){
+                    RelatedProducts::create([
+                        'product_id' =>$product->_id,
+                        'related_product_id' => $relatedProduct,
+                        'added_by' => Auth::id(),
+                    ]);
+                }
+            }
 
             DB::commit();
             return response()->json([
@@ -331,6 +354,21 @@ class ProductController extends Controller
                 }
             }
             $product->save();
+
+            $productId= $request->input('product_id');
+
+            $relatedProductsIds = $request->input('related_product_ids');
+
+            if(!empty($relatedProductsIds)){
+                RelatedProducts::where('product_id',$productId)->delete();
+                foreach($relatedProductsIds as $relatedProduct){
+                    RelatedProducts::create([
+                        'product_id' =>$productId,
+                        'related_product_id' => $relatedProduct,
+                        'added_by' => Auth::id(),
+                    ]);
+                }
+            }
             DB::commit();
             return response()->json([
                 'status_code' => 200,
@@ -423,7 +461,7 @@ class ProductController extends Controller
                 ], 404);
             }
 
-            $products = product::where('product_category_id', $category->_id)->get()
+            $products = product::with('relatedProducts')->where('product_category_id', $category->_id)->get()
                 ->each(function ($product) {
                     $product->sizes = product_size::where('product_id', $product->_id)->get()->makeHidden('product_id');
                 });
@@ -501,8 +539,10 @@ class ProductController extends Controller
                     ], 404);
                 }
 
-                $products = product::where('product_category_id', $category->_id)->where('disable', 0)->where('only_combo', 0)->get()
-                    ->each(function ($product) {
+                $products = product::with('relatedProducts')
+                ->where('product_category_id', $category->_id)
+                ->where('disable', 0)->where('only_combo', 0)->get()
+                ->each(function ($product) {
                         $product->combo = 0;
                         $sizes = product_size::where('product_id', $product->_id)->get()->makeHidden('product_id');
                         $product->sizes = $sizes;
@@ -524,7 +564,7 @@ class ProductController extends Controller
             return response()->json([
                 'status_code' => 200,
                 'data' => $products,
-                'message' => 'Products retrieved successfully'
+                'message' => 'Products retrieved successfully1'
             ], 200);
         } catch (\Exception $e) {
             return response()->json([
@@ -952,6 +992,23 @@ class ProductController extends Controller
             return response()->json([
                 'status_code' => 500,
                 'message' => 'Failed to retrieve home screen details.'
+            ], 500);
+        }
+    }
+
+    public function getallproductsrelated(){
+        try {
+            $products = product::get(['name','_id','image','product_category_id']);
+
+            return response()->json([
+                'status_code' => 200,
+                'data' => $products,
+                'message' => 'Products retrieved successfully'
+            ], 200);
+        } catch (\Exception $e) {
+            return response()->json([
+                'status_code' => 500,
+                'message' => 'Failed to retrieve product.'
             ], 500);
         }
     }

@@ -61,4 +61,12 @@ class product extends Model
     {
         return $this->hasMany(feedback::class, 'product_id');
     }
+    // public function relatedProducts() {
+    //     return $this->belongsToMany(RelatedProducts::class);
+    // }
+
+    public function relatedProducts()
+    {
+        return $this->belongsToMany(product::class, 'related_products', 'product_id', 'related_product_id');
+    }
 }
