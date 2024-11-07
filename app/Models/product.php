@@ -15,15 +15,21 @@ class product extends Model
         'name',
         'description',
         'veg',
-        'actual_price',
-        'selling_price',
+        // 'actual_price',
+        // 'selling_price',
         'best_seller',
         'recommended',
         'only_combo',
         'is_available',
         'product_category_id',
         'image',
-        'disable'
+        'disable',
+        'delivery_actual_price',
+        'delivery_selling_price',
+        'pickup_actual_price',
+        'pickup_selling_price',
+        'dinein_actual_price',
+        'dinein_selling_price',
     ];
 
     public function productCategory()

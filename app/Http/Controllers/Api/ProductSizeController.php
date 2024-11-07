@@ -39,7 +39,12 @@ class ProductSizeController extends Controller
                 ], 404);
             }
             foreach ($request->sizes as $item) {
-                if (!isset($item['size']) || !isset($item['actual_price']) || !isset($item['selling_price']) || $item['actual_price'] <= 0 || $item['selling_price'] <= 0) {
+                // if (!isset($item['size']) || !isset($item['actual_price']) || !isset($item['selling_price']) || $item['actual_price'] <= 0 || $item['selling_price'] <= 0) {
+                if (
+                    !isset($item['size']) || !isset($item['delivery_actual_price']) || !isset($item['delivery_selling_price']) || $item['delivery_actual_price'] <= 0 || $item['delivery_selling_price'] <= 0
+                    || !isset($item['pickup_actual_price']) || !isset($item['pickup_selling_price']) || $item['pickup_actual_price'] <= 0 || $item['pickup_selling_price'] <= 0
+                    || !isset($item['dinein_actual_price']) || !isset($item['dinein_selling_price']) || $item['dinein_actual_price'] <= 0 || $item['dinein_selling_price'] <= 0
+                ) {
                     return response()->json([
                         'status_code' => 100,
                         'message' => 'Invalid sizes array'
@@ -53,7 +58,10 @@ class ProductSizeController extends Controller
                         'message' => 'Product size ' . $item['size'] . ' already exist in ' . $product->name
                     ], 200);
                 }
-                if ($item['selling_price'] > $item['actual_price']) {
+                if (($item['delivery_selling_price'] > $item['delivery_actual_price']) ||
+                    ($item['pickup_selling_price'] > $item['pickup_actual_price']) ||
+                    ($item['dinein_selling_price'] > $item['dinein_actual_price'])
+                ) {
                     return response()->json([
                         'status_code' => 400,
                         'message' => 'Selling price of product is more than actual price for size ' . $name
@@ -61,8 +69,12 @@ class ProductSizeController extends Controller
                 }
                 $product_size = new product_size();
                 $product_size->size = $name;
-                $product_size->actual_price = trim($item['actual_price']);
-                $product_size->selling_price = trim($item['selling_price']);
+                $product_size->delivery_actual_price = trim($item['delivery_actual_price']);
+                $product_size->delivery_selling_price = trim($item['delivery_selling_price']);
+                $product_size->pickup_actual_price = trim($item['pickup_actual_price']);
+                $product_size->pickup_selling_price = trim($item['pickup_selling_price']);
+                $product_size->dinein_actual_price = trim($item['dinein_actual_price']);
+                $product_size->dinein_selling_price = trim($item['dinein_selling_price']);
                 $product_size->product_id = $product->_id;
                 $product_size->save();
             }
@@ -106,7 +118,12 @@ class ProductSizeController extends Controller
                 ], 404);
             }
             foreach ($request->sizes as $item) {
-                if (!isset($item['size']) || !isset($item['actual_price']) || !isset($item['selling_price']) || $item['actual_price'] <= 0 || $item['selling_price'] <= 0) {
+                // if (!isset($item['size']) || !isset($item['actual_price']) || !isset($item['selling_price']) || $item['actual_price'] <= 0 || $item['selling_price'] <= 0) {
+                if (
+                    !isset($item['size']) || !isset($item['delivery_actual_price']) || !isset($item['delivery_selling_price']) || $item['delivery_actual_price'] <= 0 || $item['delivery_selling_price'] <= 0
+                    || !isset($item['pickup_actual_price']) || !isset($item['pickup_selling_price']) || $item['pickup_actual_price'] <= 0 || $item['pickup_selling_price'] <= 0
+                    || !isset($item['dinein_actual_price']) || !isset($item['dinein_selling_price']) || $item['dinein_actual_price'] <= 0 || $item['dinein_selling_price'] <= 0
+                ) {
                     return response()->json([
                         'status_code' => 100,
                         'message' => 'Invalid sizes array'
@@ -128,12 +145,24 @@ class ProductSizeController extends Controller
                             'message' => 'Product size ' . $item['size'] . ' already exist.'
                         ], 200);
                     }
-                    $oldPrice = $product_size->selling_price;
+                    $deliveryOldPrice = $product_size->delivery_selling_price;
+                    $dineinOldPrice = $product_size->dinein_selling_price;
+                    $pickupOldPrice = $product_size->pickup_selling_price;
                     $product_size->size = $name;
-                    $product_size->actual_price = trim($item['actual_price']);
-                    $product_size->selling_price = trim($item['selling_price']);
+                    $product_size->delivery_actual_price = trim($item['delivery_actual_price']);
+                    $product_size->delivery_selling_price = trim($item['delivery_selling_price']);
+                    $product_size->pickup_actual_price = trim($item['pickup_actual_price']);
+                    $product_size->pickup_selling_price = trim($item['pickup_selling_price']);
+                    $product_size->dinein_actual_price = trim($item['dinein_actual_price']);
+                    $product_size->dinein_selling_price = trim($item['dinein_selling_price']);
+                    // $product_size->actual_price = trim($item['actual_price']);
+                    // $product_size->selling_price = trim($item['selling_price']);
 
-                    if ($product_size->selling_price > $product_size->actual_price) {
+                    // if ($product_size->selling_price > $product_size->actual_price) {
+                    if (($item['delivery_selling_price'] > $item['delivery_actual_price']) ||
+                        ($item['pickup_selling_price'] > $item['pickup_actual_price']) ||
+                        ($item['dinein_selling_price'] > $item['dinein_actual_price'])
+                    ) {
                         return response()->json([
                             'status_code' => 400,
                             'message' => 'Selling price of product is more than actual price for size ' . $product_size->size
@@ -144,16 +173,34 @@ class ProductSizeController extends Controller
                     $combos = combo::join('combo_details', 'combos._id', '=', 'combo_details.combo_id')
                         ->where('combo_details.product_id', $product_size->product_id)
                         ->where('combo_details.size', $product_size->_id)
-                        ->select('combos._id', 'combos.actual_price', 'combo_details.quantity', 'combo_details.size')
+                        ->select('combos._id', 'combos.delivery_actual_price','combos.dinein_actual_price','combos.pickup_actual_price', 'combo_details.quantity', 'combo_details.size')
                         ->get();
                     foreach ($combos as $combo) {
                         $comboModel = combo::find($combo->_id);
-                        $newTotalPrice = $comboModel->actual_price - ($oldPrice * $combo->quantity) + ($product_size->selling_price * $combo->quantity);
-                        $comboModel->actual_price = $newTotalPrice;
-                        if ($comboModel->selling_price > $comboModel->actual_price) {
+                        $newDeliveryTotalPrice = $comboModel->delivery_actual_price - ($deliveryOldPrice * $combo->quantity) + ($product_size->delivery_selling_price * $combo->quantity);
+                        $comboModel->delivery_actual_price = $newDeliveryTotalPrice;
+                        if ($comboModel->delivery_selling_price > $comboModel->delivery_actual_price) {
                             return response()->json([
                                 'status_code' => 100,
-                                'message' => 'Selling price will be more than actual price for combo ' . $comboModel->name . ' if price of the size ' . $product_size->size . ' will change.'
+                                'message' => 'Delivery selling price will be more than actual price for combo ' . $comboModel->name . ' if price of the size ' . $product_size->size . ' will change.'
+                            ], 200);
+                        }
+
+                        $newDineinTotalPrice = $comboModel->dinein_actual_price - ($dineinOldPrice* $combo->quantity) + ($product_size->dinein_selling_price * $combo->quantity);
+                        $comboModel->dinein_actual_price = $newDineinTotalPrice;
+                        if ($comboModel->dinein_selling_price > $comboModel->dinein_actual_price) {
+                            return response()->json([
+                                'status_code' => 100,
+                                'message' => 'Dine In selling price will be more than actual price for combo ' . $comboModel->name . ' if price of the size ' . $product_size->size . ' will change.'
+                            ], 200);
+                        }
+
+                        $newDineinTotalPrice = $comboModel->pickup_actual_price - ($pickupOldPrice * $combo->quantity) + ($product_size->pickup_selling_price * $combo->quantity);
+                        $comboModel->pickup_actual_price = $newDineinTotalPrice;
+                        if ($comboModel->pickup_selling_price > $comboModel->pickup_actual_price) {
+                            return response()->json([
+                                'status_code' => 100,
+                                'message' => 'Pickup selling price will be more than actual price for combo ' . $comboModel->name . ' if price of the size ' . $product_size->size . ' will change.'
                             ], 200);
                         }
                         $comboModel->save();
@@ -161,8 +208,14 @@ class ProductSizeController extends Controller
                 } else {
                     $product_size = new product_size();
                     $product_size->size = $name;
-                    $product_size->actual_price = trim($item['actual_price']);
-                    $product_size->selling_price = trim($item['selling_price']);
+                    $product_size->delivery_actual_price = trim($item['delivery_actual_price']);
+                    $product_size->delivery_selling_price = trim($item['delivery_selling_price']);
+                    $product_size->pickup_actual_price = trim($item['pickup_actual_price']);
+                    $product_size->pickup_selling_price = trim($item['pickup_selling_price']);
+                    $product_size->dinein_actual_price = trim($item['dinein_actual_price']);
+                    $product_size->dinein_selling_price = trim($item['dinein_selling_price']);
+                    // $product_size->actual_price = trim($item['actual_price']);
+                    // $product_size->selling_price = trim($item['selling_price']);
                     $product_size->product_id = $product->_id;
                     $product_size->save();
                 }

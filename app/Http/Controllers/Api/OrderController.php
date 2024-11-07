@@ -172,10 +172,17 @@ class OrderController extends Controller
                     $order_product->name = $product->name;
                     $order_product->size = $product_size ? $product_size->size : null;
                     $order_product->size_id = $product_size ? $product_size->_id : null;
-                    $order_product->price = $product_size ? $product_size->selling_price : $product->selling_price;
+                    // $order_product->price =  $product_size ? $product_size->selling_price : $product->selling_price;
                     $order_product->quantity = $item->quantity;
                     $order_product->veg = $product->veg;
                     $order_product->product_id  = $product->_id;
+                    if ($order->order_type === 'Delivery') {
+                        $order_product->price = $product_size ? $product_size->delivery_selling_price : $product->delivery_selling_price;
+                    } else if ($order->order_type === 'Dine In') {
+                        $order_product->price = $product_size ? $product_size->dinein_selling_price : $product->dinein_selling_price;
+                    } else if ($order->order_type === 'Pickup') {
+                        $order_product->price = $product_size ? $product_size->pickup_selling_price : $product->pickup_selling_price;
+                    }
                     $order_product->save();
                 } else if ($item->combo_id) {
                     $combo = combo::where('_id', $item->combo_id)->where('disable', 0)->first();
@@ -188,10 +195,17 @@ class OrderController extends Controller
                     $order_product = new order_product();
                     $order_product->order_id = $order->_id;
                     $order_product->name = $combo->name;
-                    $order_product->price = $combo->selling_price;
+                    // $order_product->price = $combo->selling_price;
                     $order_product->quantity = $item->quantity;
                     $order_product->veg = $combo->veg;
                     $order_product->combo_id  = $combo->_id;
+                    if ($order->order_type === 'Delivery') {
+                        $order_product->price = $combo->delivery_selling_price;
+                    } else if ($order->order_type === 'Dine In') {
+                        $order_product->price = $combo->dinein_selling_price;
+                    } else if ($order->order_type === 'Pickup') {
+                        $order_product->price = $combo->pickup_selling_price;
+                    }
                     $order_product->save();
                 }
             }

@@ -13,9 +13,15 @@ class product_size extends Model
 
     protected $fillable = [
         'size',
-        'actual_price',
-        'selling_price',
-        'product_id'
+        // 'actual_price',
+        // 'selling_price',
+        'product_id',
+        'delivery_actual_price',
+        'delivery_selling_price',
+        'pickup_actual_price',
+        'pickup_selling_price',
+        'dinein_actual_price',
+        'dinein_selling_price',
     ];
 
     public function product()

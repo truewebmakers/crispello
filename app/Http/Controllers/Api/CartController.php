@@ -346,12 +346,12 @@ class CartController extends Controller
                     $is_combo = 0;
                     if ($cartDetail->combo_id) {
                         $product = combo::where('_id', $cartDetail->combo_id)
-                            ->select('_id', 'name', 'veg', 'selling_price as price', 'is_available', 'disable')
+                            ->select('_id', 'name', 'veg', 'delivery_selling_price as delivery_price','dinein_selling_price as dinein_price','pickup_selling_price as pickup_price', 'is_available', 'disable')
                             ->first();
                         $is_combo = 1;
                     } else {
                         $product = product::where('_id', $cartDetail->product_id)
-                            ->select('_id', 'name', 'veg', 'selling_price as price', 'is_available', 'disable')
+                            ->select('_id', 'name', 'veg', 'delivery_selling_price as delivery_price','dinein_selling_price as dinein_price','pickup_selling_price as pickup_price', 'is_available', 'disable')
                             ->first();
                     }
                     $product->quantity = $cartDetail->quantity;
@@ -363,10 +363,14 @@ class CartController extends Controller
                             ->first();
 
                         if ($product_size) {
-                            $product_size->makeHidden(['product_id', 'actual_price', 'selling_price']);
-                            $product_size->price = $product_size->selling_price;
+                            $product_size->makeHidden(['product_id', 'delivery_actual_price', 'delivery_selling_price','pickup_actual_price','pickup_selling_price','dinein_actual_price','dinein_selling_price']);
+                            $product_size->delivery_price = $product_size->delivery_selling_price;
+                            $product_size->dinein_price = $product_size->dinein_selling_price;
+                            $product_size->pickup_price = $product_size->pickup_selling_price;
                             $product->size = $product_size;
-                            $product->price = $product_size->selling_price;
+                            $product->delivery_price = $product_size->delivery_selling_price;
+                            $product->dinein_price = $product_size->dinein_selling_price;
+                            $product->pickup_price = $product_size->pickup_selling_price;
                         } else {
                             $product->size = (object) [
                                 "_id" => $cartDetail->size,
@@ -400,7 +404,7 @@ class CartController extends Controller
     {
         $validator = Validator::make($request->all(), [
             'cart_id' => 'required',
-            // 'order_type' => 'in:Delivery,Dine In,Pickup',
+            'order_type' => 'in:Delivery,Dine In,Pickup',
             // 'table_no' => 'required_if:order_type,Dine In',
             // 'address_id' => 'required_if:order_type,Delivery|integer',
             // 'payment_method' => 'sometimes|boolean'
@@ -432,9 +436,9 @@ class CartController extends Controller
                 $cart->address_id = $request->address_id;
                 $cart->table_no = null;
             }
-            // if ($request->has('order_type')) {
-            //     $cart->order_type = $request->order_type;
-            // }
+            if ($request->has('order_type')) {
+                $cart->order_type = $request->order_type;
+            }
             // if ($cart->order_type === 'Dine In' && $request->has('table_no')) {
             //     $cart->table_no = $request->table_no;
             //     $cart->address_id = null;

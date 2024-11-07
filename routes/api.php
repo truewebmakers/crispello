@@ -18,6 +18,9 @@ use App\Http\Controllers\Api\ProductController;
 use App\Http\Controllers\Api\ProductSizeController;
 use App\Http\Controllers\Api\UserController;
 use App\Http\Controllers\Api\VideoController;
+use App\Http\Controllers\Api\ReferralCampaignController;
+
+
 use Illuminate\Support\Facades\Route;
 
 
@@ -43,10 +46,8 @@ Route::get('user/onboarding/getonboardings', [OnboardingController::class, 'getO
 Route::prefix('user')->middleware(['auth:user', 'scope:user'])->group(function () {
     //home api
     Route::get('home/getalldetails', [ProductController::class, 'getAllHomeDetails']);
-
     //product category
     Route::get('productcategory/getallcategories', [ProductCategoryController::class, 'getAllProductCategoriesCustomer']);
-
     //product
     Route::get('product/getproductsbycategory', [ProductController::class, 'getAllProductByCategoryCustomer']);
     Route::get('product/getbestsellers', [ProductController::class, 'getBestSeller']);
@@ -95,7 +96,7 @@ Route::prefix('user')->middleware(['auth:user', 'scope:user'])->group(function (
     Route::post('notification/read', [NotificationController::class, 'readNotification']);
 });
 
-//admin 
+//admin
 Route::post('admin/login', [AdminController::class, 'adminLogin']);
 Route::post('admin/register', [AdminController::class, 'adminRegistration']);
 Route::post('admin/logout', [AdminController::class, 'adminLogout']);
@@ -170,6 +171,28 @@ Route::prefix('admin')->middleware(['auth:admin', 'scope:admin'])->group(functio
     Route::get('delivery/getalldrivers', [DeliveryPersonController::class, 'getDriverList']);
     Route::post('delivery/request/send', [OrderController::class, 'sendDeliveryRequest']);
     Route::post('delivery/request/cancel', [OrderController::class, 'cancelDeliveryRequest']);
+
+
+    // Referral
+
+    Route::post('referral/store', [ReferralCampaignController::class, 'store']);
+    Route::post('referral/update/{id}', [ReferralCampaignController::class, 'update']);
+    Route::get('referral/get', [ReferralCampaignController::class, 'index']);
+
+    Route::post('referral/delete/{id}', [ReferralCampaignController::class, 'delete']);
+    Route::post('referral/log/store', [ReferralCampaignController::class, 'referralLog']);
+
+    Route::get('referral/get/code', [ReferralCampaignController::class, 'fetchDataWithCode']);
+
+    // customer Wallet
+    Route::post('customer/wallet/store', [ReferralCampaignController::class, 'CustomerWallet']);
+    Route::get('customer/wallet/get/{user_id}', [ReferralCampaignController::class, 'CustomerWalletFetch']);
+
+
+
+
+
+
 
 });
 

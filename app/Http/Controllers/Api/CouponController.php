@@ -216,17 +216,37 @@ class CouponController extends Controller
                         if ($cartProduct->size) {
                             $size = product_size::find($cartProduct->size_id);
                             if ($size) {
-                                $productPrice = $size->selling_price;
+                                if ($cart->order_type === 'Delivery') {
+                                    $productPrice = $size->delivery_selling_price;
+                                } else if ($cart->order_type === 'Dine In') {
+                                    $productPrice = $size->dinein_selling_price;
+                                } else if ($cart->order_type === 'Pickup') {
+                                    $productPrice = $size->pickup_selling_price;
+                                }
                             }
                         } else if ($cartProduct->product_id) {
                             $product = product::find($cartProduct->product_id);
                             if ($product) {
-                                $productPrice = $product->selling_price;
+                                if ($cart->order_type === 'Delivery') {
+                                    $productPrice = $product->delivery_selling_price;
+                                } else if ($cart->order_type === 'Dine In') {
+                                    $productPrice = $product->dinein_selling_price;
+                                } else if ($cart->order_type === 'Pickup') {
+                                    $productPrice = $product->pickup_selling_price;
+                                }
+                                // $productPrice = $product->selling_price;
                             }
                         } elseif ($cartProduct->combo_id) {
                             $combo = combo::find($cartProduct->combo_id);
                             if ($combo) {
-                                $productPrice = $combo->selling_price;
+                                if ($cart->order_type === 'Delivery') {
+                                    $productPrice = $combo->delivery_selling_price;
+                                } else if ($cart->order_type === 'Dine In') {
+                                    $productPrice = $combo->dinein_selling_price;
+                                } else if ($cart->order_type === 'Pickup') {
+                                    $productPrice = $combo->pickup_selling_price;
+                                }
+                                // $productPrice = $combo->selling_price;
                             }
                         }
                         $grandTotal += $productPrice * $cartProduct->quantity;
@@ -331,7 +351,7 @@ class CouponController extends Controller
                 ->whereNotNull('coupon_id')
                 ->pluck('coupon_id')
                 ->toArray();
-                
+
             // Retrieve coupons that are valid and not in the used coupons list
             $coupons = Coupon::where(function ($query) use ($today) {
                 $query->where('valid_until', '>=', $today)

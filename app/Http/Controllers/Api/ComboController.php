@@ -25,7 +25,9 @@ class ComboController extends Controller
         $validator = Validator::make($request->all(), [
             'name' => 'required',
             'image' => 'required',
-            'selling_price' => 'required|numeric',
+            'delivery_selling_price' => 'required|numeric',
+            'dinein_selling_price' => 'required|numeric',
+            'pickup_selling_price' => 'required|numeric',
             'veg' => 'required|boolean',
             'best_seller' => 'boolean',
             'recommended' => 'boolean',
@@ -57,17 +59,20 @@ class ComboController extends Controller
 
             $newCombo = new combo();
             $newCombo->name = $name;
-            $newCombo->selling_price = $request->selling_price;
+            $newCombo->delivery_selling_price = $request->delivery_selling_price;
+            $newCombo->dinein_selling_price = $request->dinein_selling_price;
+            $newCombo->pickup_selling_price = $request->pickup_selling_price;
             $newCombo->veg = $request->veg;
-            $newCombo->selling_price = $request->selling_price;
             $newCombo->best_seller = $request->has('best_seller') ? $request->best_seller : 0;
             $newCombo->recommended = $request->has('recommended') ? $request->recommended : 0;
             $newCombo->is_available = $request->has('is_available') ? $request->is_available : 1;
             $newCombo->disable = 0;
-            $actualPrice = $this->calculateActualPrice($request->products);
-            $newCombo->actual_price = $actualPrice;
+            $prices = $this->calculateActualPrice($request->products);
+            $newCombo->delivery_actual_price = $prices['deliveryActualPrice'];
+            $newCombo->dinein_actual_price = $prices['dineinActualPrice'];
+            $newCombo->pickup_actual_price = $prices['pickupActualPrice'];
 
-            if ($newCombo->selling_price > $newCombo->actual_price) {
+            if (($newCombo->delivery_selling_price > $newCombo->delivery_actual_price)||($newCombo->dinein_selling_price > $newCombo->dinein_actual_price)||($newCombo->pickup_selling_price > $newCombo->pickup_actual_price)) {
                 return response()->json([
                     'status_code' => 100,
                     'message' => 'Selling price is more than actual price'
@@ -121,8 +126,11 @@ class ComboController extends Controller
             'best_seller' => 'boolean',
             'recommended' => 'boolean',
             'is_available' => 'boolean',
-            'selling_price' => 'sometimes|numeric',
+            'delivery_selling_price' => 'sometimes|numeric',
+            'dinein_selling_price' => 'sometimes|numeric',
+            'pickup_selling_price' => 'sometimes|numeric',
         ]);
+        
         if ($validator->fails()) {
             return response()->json([
                 'status_code' => 400,
@@ -177,8 +185,14 @@ class ComboController extends Controller
                 cart_product::where('combo_id', $combo->_id)->update(['is_update' => 1]);
             }
 
-            if ($request->has('selling_price')) {
-                $combo->selling_price = $request->selling_price;
+            if ($request->has('delivery_selling_price')) {
+                $combo->delivery_selling_price = $request->delivery_selling_price;
+            }
+            if ($request->has('dinein_selling_price')) {
+                $combo->dinein_selling_price = $request->dinein_selling_price;
+            }
+            if ($request->has('pickup_selling_price')) {
+                $combo->pickup_selling_price = $request->pickup_selling_price;
             }
             if ($request->has('veg')) {
                 $combo->veg = $request->veg;
@@ -230,7 +244,7 @@ class ComboController extends Controller
                 }
                 $combo->image = 'storage/app/public/product/' . $imageName . '?timestamp=' . time();
             }
-            if ($combo->selling_price > $combo->actual_price) {
+            if (($combo->delivery_selling_price > $combo->delivery_actual_price)||($combo->dinein_selling_price > $combo->dinein_actual_price)||($combo->pickup_selling_price > $combo->pickup_actual_price)) {
                 return response()->json([
                     'status_code' => 100,
                     'message' => 'Selling price is more than actual price'
@@ -401,7 +415,9 @@ class ComboController extends Controller
      */
     private function calculateActualPrice($products)
     {
-        $actualPrice = 0;
+        $deliveryActualPrice = 0;
+        $dineinActualPrice = 0;
+        $pickupActualPrice = 0;
 
         foreach ($products as $item) {
             $product = product::find($item['id']);
@@ -418,7 +434,10 @@ class ComboController extends Controller
                     ->where('_id', $item['size'])
                     ->first();
                 if ($product_size) {
-                    $actualPrice += $product_size->selling_price * $quantity;
+                    $deliveryActualPrice += $product_size->delivery_selling_price * $quantity;
+                    $dineinActualPrice += $product_size->dinein_selling_price * $quantity;
+                    $pickupActualPrice += $product_size->pickup_selling_price * $quantity;
+                    // $actualPrice += $product_size->selling_price * $quantity;
                 } else {
                     return response()->json([
                         'status_code' => 102,
@@ -426,10 +445,18 @@ class ComboController extends Controller
                     ], 200);
                 }
             } else {
-                $actualPrice += $product->selling_price * $quantity;
+                $deliveryActualPrice += $product->delivery_selling_price * $quantity;
+                $dineinActualPrice += $product->dinein_selling_price * $quantity;
+                $pickupActualPrice += $product->pickup_selling_price * $quantity;
+                // $actualPrice += $product->selling_price * $quantity;
             }
         }
-        return $actualPrice;
+        return [
+            'deliveryActualPrice' => $deliveryActualPrice,
+            'dineinActualPrice' => $dineinActualPrice,
+            'pickupActualPrice' => $pickupActualPrice
+        ];
+        // return $actualPrice;
     }
 
     /**

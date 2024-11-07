@@ -33,11 +33,17 @@ class ProductController extends Controller
             'recommended' => 'boolean',
             'is_available' => 'boolean',
             'only_combo' => 'boolean',
-            'actual_price' => 'required|numeric|min:0.01',
-            'selling_price' => 'required|numeric|min:0.01|lte:actual_price',
+            'delivery_actual_price' => 'required|numeric|min:0.01',
+            'delivery_selling_price' => 'required|numeric|min:0.01|lte:delivery_actual_price',
+            'pickup_actual_price' => 'required|numeric|min:0.01',
+            'pickup_selling_price' => 'required|numeric|min:0.01|lte:pickup_actual_price',
+            'dinein_actual_price' => 'required|numeric|min:0.01',
+            'dinein_selling_price' => 'required|numeric|min:0.01|lte:dinein_actual_price',
             'category_id' => 'required'
         ], [
-            'selling_price.lte' => 'The selling price must be less than or equal to the actual price.',
+            'delivery_selling_price.lte' => 'The selling price must be less than or equal to the actual price.',
+            'pickup_selling_price.lte' => 'The selling price must be less than or equal to the actual price.',
+            'dinein_selling_price.lte' => 'The selling price must be less than or equal to the actual price.',
         ]);
         if ($validator->fails()) {
             return response()->json([
@@ -68,8 +74,12 @@ class ProductController extends Controller
             $product = new product();
             $product->name = $name;
             $product->veg = $request->veg;
-            $product->actual_price = $request->actual_price;
-            $product->selling_price = $request->selling_price;
+            $product->delivery_actual_price = $request->delivery_actual_price;
+            $product->delivery_selling_price = $request->delivery_selling_price;
+            $product->pickup_actual_price = $request->pickup_actual_price;
+            $product->pickup_selling_price = $request->pickup_selling_price;
+            $product->dinein_actual_price = $request->dinein_actual_price;
+            $product->dinein_selling_price = $request->dinein_selling_price;
             $product->description =  $request->description;
             $product->best_seller = $request->has('best_seller') ? $request->best_seller : 0;
             $product->recommended = $request->has('recommended') ? $request->recommended : 0;
@@ -119,8 +129,12 @@ class ProductController extends Controller
             'is_available' => 'boolean',
             'only_combo' => 'boolean',
             'category_id' => 'sometimes|min:1',
-            'actual_price' => 'sometimes|numeric|min:0.01',
-            'selling_price' => 'sometimes|numeric|min:0.01',
+            'delivery_actual_price' => 'sometimes|numeric|min:0.01',
+            'delivery_selling_price' => 'sometimes|numeric|min:0.01',
+            'pickup_actual_price' => 'sometimes|numeric|min:0.01',
+            'pickup_selling_price' => 'sometimes|numeric|min:0.01',
+            'dinein_actual_price' => 'sometimes|numeric|min:0.01',
+            'dinein_selling_price' => 'sometimes|numeric|min:0.01',
         ]);
         if ($validator->fails()) {
             return response()->json([
@@ -162,15 +176,14 @@ class ProductController extends Controller
                 $product->name = $name;
             }
 
-            $oldPrice = $product->selling_price;
+            $deliveryOldPrice = $product->delivery_selling_price;
+                    $dineinOldPrice = $product->dinein_selling_price;
+                    $pickupOldPrice = $product->pickup_selling_price;
             $oldImage = parse_url($product->image, PHP_URL_PATH);
             $product->description = $request->description;
 
             if ($request->has('veg')) {
                 $product->veg = $request->veg;
-            }
-            if ($request->has('actual_price')) {
-                $product->actual_price = $request->actual_price;
             }
             if ($request->has('best_seller')) {
                 $product->best_seller = $request->best_seller;
@@ -181,13 +194,40 @@ class ProductController extends Controller
             if ($request->has('only_combo')) {
                 $product->only_combo = $request->only_combo;
             }
-            if ($request->has('selling_price')) {
-                $product->selling_price = $request->selling_price;
+            if ($request->has('delivery_actual_price')) {
+                $product->delivery_actual_price = $request->delivery_actual_price;
             }
-            if ($product->selling_price > $product->actual_price) {
+            if ($request->has('delivery_selling_price')) {
+                $product->delivery_selling_price = $request->delivery_selling_price;
+            }
+            if ($product->delivery_selling_price > $product->delivery_actual_price) {
                 return response()->json([
                     'status_code' => 400,
-                    'message' => 'Selling price of product is more than actual price'
+                    'message' => 'Delivery selling price of product is more than actual price'
+                ], 200);
+            }
+            if ($request->has('pickup_actual_price')) {
+                $product->pickup_actual_price = $request->pickup_actual_price;
+            }
+            if ($request->has('pickup_selling_price')) {
+                $product->pickup_selling_price = $request->pickup_selling_price;
+            }
+            if ($product->pickup_selling_price > $product->pickup_actual_price) {
+                return response()->json([
+                    'status_code' => 400,
+                    'message' => 'Pickup selling price of product is more than actual price'
+                ], 200);
+            }
+            if ($request->has('dinein_actual_price')) {
+                $product->dinein_actual_price = $request->dinein_actual_price;
+            }
+            if ($request->has('dinein_selling_price')) {
+                $product->dinein_selling_price = $request->dinein_selling_price;
+            }
+            if ($product->dinein_selling_price > $product->dinein_actual_price) {
+                return response()->json([
+                    'status_code' => 400,
+                    'message' => 'Dine In selling price of product is more than actual price'
                 ], 200);
             }
             if ($request->has('is_available')) {
@@ -221,23 +261,69 @@ class ProductController extends Controller
             }
 
 
-            if ($request->has('selling_price')) {
+            if ($request->has('delivery_selling_price')) {
                 $sizeExist = product_size::where('product_id', $product->_id)->exists();
                 if (!$sizeExist) {
                     $combos = combo::join('combo_details', 'combos._id', '=', 'combo_details.combo_id')
                         ->where('combo_details.product_id', $product->_id)
                         ->whereNull('combo_details.size')
-                        ->select('combos._id', 'combos.actual_price', 'combo_details.quantity', 'combo_details.size')
+                        ->select('combos._id', 'combos.delivery_actual_price', 'combo_details.quantity', 'combo_details.size')
                         ->get();
 
                     foreach ($combos as $combo) {
                         $comboModel = combo::find($combo->_id);
-                        $newTotalPrice = $comboModel->actual_price - ($oldPrice * $combo->quantity) + ($product->selling_price * $combo->quantity);
-                        $comboModel->actual_price = $newTotalPrice;
-                        if ($comboModel->selling_price > $comboModel->actual_price) {
+                        $newTotalPrice = $comboModel->delivery_actual_price - ($deliveryOldPrice * $combo->quantity) + ($product->delivery_selling_price * $combo->quantity);
+                        $comboModel->delivery_actual_price = $newTotalPrice;
+                        if ($comboModel->delivery_selling_price > $comboModel->delivery_actual_price) {
                             return response()->json([
                                 'status_code' => 100,
-                                'message' => 'Selling price will be more than actual price for combo ' . $comboModel->name . ' if price of the ' . $product->name . ' will change.'
+                                'message' => 'Delivery selling price will be more than actual price for combo ' . $comboModel->name . ' if price of the ' . $product->name . ' will change.'
+                            ], 200);
+                        }
+                        $comboModel->save();
+                    }
+                }
+            }
+            if ($request->has('dinein_selling_price')) {
+                $sizeExist = product_size::where('product_id', $product->_id)->exists();
+                if (!$sizeExist) {
+                    $combos = combo::join('combo_details', 'combos._id', '=', 'combo_details.combo_id')
+                        ->where('combo_details.product_id', $product->_id)
+                        ->whereNull('combo_details.size')
+                        ->select('combos._id', 'combos.dinein_actual_price', 'combo_details.quantity', 'combo_details.size')
+                        ->get();
+
+                    foreach ($combos as $combo) {
+                        $comboModel = combo::find($combo->_id);
+                        $newTotalPrice = $comboModel->dinein_actual_price - ($dineinOldPrice * $combo->quantity) + ($product->dinein_selling_price * $combo->quantity);
+                        $comboModel->dinein_actual_price = $newTotalPrice;
+                        if ($comboModel->dinein_selling_price > $comboModel->dinein_actual_price) {
+                            return response()->json([
+                                'status_code' => 100,
+                                'message' => 'Dine In selling price will be more than actual price for combo ' . $comboModel->name . ' if price of the ' . $product->name . ' will change.'
+                            ], 200);
+                        }
+                        $comboModel->save();
+                    }
+                }
+            }
+            if ($request->has('pickup_selling_price')) {
+                $sizeExist = product_size::where('product_id', $product->_id)->exists();
+                if (!$sizeExist) {
+                    $combos = combo::join('combo_details', 'combos._id', '=', 'combo_details.combo_id')
+                        ->where('combo_details.product_id', $product->_id)
+                        ->whereNull('combo_details.size')
+                        ->select('combos._id', 'combos.pickup_actual_price', 'combo_details.quantity', 'combo_details.size')
+                        ->get();
+
+                    foreach ($combos as $combo) {
+                        $comboModel = combo::find($combo->_id);
+                        $newTotalPrice = $comboModel->pickup_actual_price - ($pickupOldPrice * $combo->quantity) + ($product->pickup_selling_price * $combo->quantity);
+                        $comboModel->pickup_actual_price = $newTotalPrice;
+                        if ($comboModel->pickup_selling_price > $comboModel->pickup_actual_price) {
+                            return response()->json([
+                                'status_code' => 100,
+                                'message' => 'Pickup selling price will be more than actual price for combo ' . $comboModel->name . ' if price of the ' . $product->name . ' will change.'
                             ], 200);
                         }
                         $comboModel->save();
@@ -422,8 +508,14 @@ class ProductController extends Controller
                         $product->sizes = $sizes;
                         if ($sizes->isNotEmpty()) {
                             $firstSize = $sizes->first();
-                            $product->actual_price = $firstSize->actual_price;
-                            $product->selling_price = $firstSize->selling_price;
+                            $product->delivery_actual_price = $firstSize->delivery_actual_price;
+                            $product->delivery_selling_price = $firstSize->delivery_selling_price;
+                            $product->pickup_actual_price = $firstSize->pickup_actual_price;
+                            $product->pickup_selling_price = $firstSize->pickup_selling_price;
+                            $product->dinein_actual_price = $firstSize->dinein_actual_price;
+                            $product->dinein_selling_price = $firstSize->dinein_selling_price;
+                            // $product->actual_price = $firstSize->actual_price;
+                            // $product->selling_price = $firstSize->selling_price;
                         }
                     })
                     ->makeHidden(['disable', 'only_combo']);
@@ -455,8 +547,14 @@ class ProductController extends Controller
                     $product->sizes = $sizes;
                     if ($sizes->isNotEmpty()) {
                         $firstSize = $sizes->first();
-                        $product->actual_price = $firstSize->actual_price;
-                        $product->selling_price = $firstSize->selling_price;
+                        $product->delivery_actual_price = $firstSize->delivery_actual_price;
+                        $product->delivery_selling_price = $firstSize->delivery_selling_price;
+                        $product->pickup_actual_price = $firstSize->pickup_actual_price;
+                        $product->pickup_selling_price = $firstSize->pickup_selling_price;
+                        $product->dinein_actual_price = $firstSize->dinein_actual_price;
+                        $product->dinein_selling_price = $firstSize->dinein_selling_price;
+                        // $product->actual_price = $firstSize->actual_price;
+                        // $product->selling_price = $firstSize->selling_price;
                     }
                 })
                 ->makeHidden(['disable', 'only_combo']);
@@ -521,8 +619,14 @@ class ProductController extends Controller
                     $product->sizes = $sizes;
                     if ($sizes->isNotEmpty()) {
                         $firstSize = $sizes->first();
-                        $product->actual_price = $firstSize->actual_price;
-                        $product->selling_price = $firstSize->selling_price;
+                        // $product->actual_price = $firstSize->actual_price;
+                        // $product->selling_price = $firstSize->selling_price;
+                        $product->delivery_actual_price = $firstSize->delivery_actual_price;
+                        $product->delivery_selling_price = $firstSize->delivery_selling_price;
+                        $product->pickup_actual_price = $firstSize->pickup_actual_price;
+                        $product->pickup_selling_price = $firstSize->pickup_selling_price;
+                        $product->dinein_actual_price = $firstSize->dinein_actual_price;
+                        $product->dinein_selling_price = $firstSize->dinein_selling_price;
                     }
                 })
                 ->makeHidden(['disable', 'only_combo']);
@@ -590,8 +694,14 @@ class ProductController extends Controller
                         $product->sizes = $sizes;
                         if ($sizes->isNotEmpty()) {
                             $firstSize = $sizes->first();
-                            $product->actual_price = $firstSize->actual_price;
-                            $product->selling_price = $firstSize->selling_price;
+                            // $product->actual_price = $firstSize->actual_price;
+                            // $product->selling_price = $firstSize->selling_price;
+                            $product->delivery_actual_price = $firstSize->delivery_actual_price;
+                            $product->delivery_selling_price = $firstSize->delivery_selling_price;
+                            $product->pickup_actual_price = $firstSize->pickup_actual_price;
+                            $product->pickup_selling_price = $firstSize->pickup_selling_price;
+                            $product->dinein_actual_price = $firstSize->dinein_actual_price;
+                            $product->dinein_selling_price = $firstSize->dinein_selling_price;
                         }
                     })
                     ->makeHidden(['disable', 'only_combo']);
@@ -638,8 +748,14 @@ class ProductController extends Controller
                         $product->sizes = $sizes;
                         if ($sizes->isNotEmpty()) {
                             $firstSize = $sizes->first();
-                            $product->actual_price = $firstSize->actual_price;
-                            $product->selling_price = $firstSize->selling_price;
+                            // $product->actual_price = $firstSize->actual_price;
+                            // $product->selling_price = $firstSize->selling_price;
+                            $product->delivery_actual_price = $firstSize->delivery_actual_price;
+                            $product->delivery_selling_price = $firstSize->delivery_selling_price;
+                            $product->pickup_actual_price = $firstSize->pickup_actual_price;
+                            $product->pickup_selling_price = $firstSize->pickup_selling_price;
+                            $product->dinein_actual_price = $firstSize->dinein_actual_price;
+                            $product->dinein_selling_price = $firstSize->dinein_selling_price;
                         }
                     })
                     ->makeHidden(['disable', 'only_combo']);
@@ -719,8 +835,14 @@ class ProductController extends Controller
                     $product->sizes = $sizes;
                     if ($sizes->isNotEmpty()) {
                         $firstSize = $sizes->first();
-                        $product->actual_price = $firstSize->actual_price;
-                        $product->selling_price = $firstSize->selling_price;
+                        // $product->actual_price = $firstSize->actual_price;
+                        // $product->selling_price = $firstSize->selling_price;
+                        $product->delivery_actual_price = $firstSize->delivery_actual_price;
+                        $product->delivery_selling_price = $firstSize->delivery_selling_price;
+                        $product->pickup_actual_price = $firstSize->pickup_actual_price;
+                        $product->pickup_selling_price = $firstSize->pickup_selling_price;
+                        $product->dinein_actual_price = $firstSize->dinein_actual_price;
+                        $product->dinein_selling_price = $firstSize->dinein_selling_price;
                     }
                 })
                 ->makeHidden(['disable', 'only_combo']);
@@ -768,8 +890,14 @@ class ProductController extends Controller
                     $product->sizes = $sizes;
                     if ($sizes->isNotEmpty()) {
                         $firstSize = $sizes->first();
-                        $product->actual_price = $firstSize->actual_price;
-                        $product->selling_price = $firstSize->selling_price;
+                        // $product->actual_price = $firstSize->actual_price;
+                        // $product->selling_price = $firstSize->selling_price;
+                        $product->delivery_actual_price = $firstSize->delivery_actual_price;
+                        $product->delivery_selling_price = $firstSize->delivery_selling_price;
+                        $product->pickup_actual_price = $firstSize->pickup_actual_price;
+                        $product->pickup_selling_price = $firstSize->pickup_selling_price;
+                        $product->dinein_actual_price = $firstSize->dinein_actual_price;
+                        $product->dinein_selling_price = $firstSize->dinein_selling_price;
                     }
                 })
                 ->makeHidden(['disable', 'only_combo']);
