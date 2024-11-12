@@ -540,7 +540,7 @@ class ProductController extends Controller
                 }
 
                 $products = product::with('relatedProducts')
-                ->where('product_category_id', $category->_id)
+                ->where('product_category_id', operator: $category->_id)
                 ->where('disable', 0)->where('only_combo', 0)->get()
                 ->each(function ($product) {
                         $product->combo = 0;

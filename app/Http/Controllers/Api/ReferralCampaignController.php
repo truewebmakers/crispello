@@ -192,7 +192,4 @@ class ReferralCampaignController extends Controller
         ], 200);
     }
 
-
-
-
 }

@@ -197,9 +197,6 @@ Route::prefix('admin')->middleware(['auth:admin', 'scope:admin'])->group(functio
     Route::get('fare/setting/get', [DeliveryPartnerFareSettingController::class, 'index']);
 
 
-
-
-
     // Referral
 
     Route::post('referral/store', [ReferralCampaignController::class, 'store']);
@@ -214,12 +211,6 @@ Route::prefix('admin')->middleware(['auth:admin', 'scope:admin'])->group(functio
     // customer Wallet
     Route::post('customer/wallet/store', [ReferralCampaignController::class, 'CustomerWallet']);
     Route::get('customer/wallet/get/{user_id}', [ReferralCampaignController::class, 'CustomerWalletFetch']);
-
-
-
-
-
-
 
 });
 

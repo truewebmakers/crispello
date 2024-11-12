@@ -15,7 +15,6 @@ return new class extends Migration
             $table->id();
             $table->decimal('fare_per_km', 8, 2);
             $table->enum('currency', ['SAR', 'USD','INR','AUD','AED'])->default('SAR');
-
             $table->unsignedBigInteger('added_by')->nullable();
             $table->foreign('added_by')->references('_id')->on('users');
             $table->timestamps();
