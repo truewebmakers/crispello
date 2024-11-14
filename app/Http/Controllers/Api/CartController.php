@@ -346,12 +346,12 @@ class CartController extends Controller
                     $is_combo = 0;
                     if ($cartDetail->combo_id) {
                         $product = combo::where('_id', $cartDetail->combo_id)
-                            ->select('_id', 'name', 'veg', 'delivery_selling_price as delivery_price','dinein_selling_price as dinein_price','pickup_selling_price as pickup_price', 'is_available', 'disable')
+                            ->select('_id', 'name','arabic_name', 'veg', 'delivery_selling_price as delivery_price','dinein_selling_price as dinein_price','pickup_selling_price as pickup_price', 'is_available', 'disable')
                             ->first();
                         $is_combo = 1;
                     } else {
                         $product = product::where('_id', $cartDetail->product_id)
-                            ->select('_id', 'name', 'veg', 'delivery_selling_price as delivery_price','dinein_selling_price as dinein_price','pickup_selling_price as pickup_price', 'is_available', 'disable')
+                            ->select('_id', 'name','arabic_name', 'veg', 'delivery_selling_price as delivery_price','dinein_selling_price as dinein_price','pickup_selling_price as pickup_price', 'is_available', 'disable')
                             ->first();
                     }
                     $product->quantity = $cartDetail->quantity;

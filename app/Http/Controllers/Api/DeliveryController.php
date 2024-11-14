@@ -54,7 +54,7 @@ class DeliveryController extends Controller
                 if ($order->delivery_charge) {
                     $order->total += $order->delivery_charge;
                 }
-                $order->products = order_product::select('_id', 'name', 'size', 'quantity')->where('order_id', $req->order_id)->get();
+                $order->products = order_product::select('_id', 'name','arabic_name', 'size','arabic_size', 'quantity')->where('order_id', $req->order_id)->get();
                 $user = User::select('_id', 'name', 'phoneno')->where('_id', $order->user_id)->first();
                 if (!$user) {
                     continue;
@@ -206,7 +206,7 @@ class DeliveryController extends Controller
                 $order->total += $order->delivery_charge;
             }
             $order->delivery_status = $deliveryRequest->status;
-            $order->products = order_product::select('_id', 'name', 'size', 'quantity')->where('order_id', $order->_id)->get();
+            $order->products = order_product::select('_id', 'name','arabic_name', 'size','arabic_size', 'quantity')->where('order_id', $order->_id)->get();
             $user = User::select('_id', 'phoneno', 'name')->where('_id', $order->user_id)->first();
             if (!$user) {
                 return response()->json([

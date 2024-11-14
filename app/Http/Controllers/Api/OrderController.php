@@ -343,7 +343,6 @@ class OrderController extends Controller
                 'message' => 'Order placed successfully'
             ], 200);
         } catch (\Exception $e) {
-            print($e);
             DB::rollBack();
             return response()->json([
                 'status_code' => 500,

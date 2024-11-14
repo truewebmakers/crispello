@@ -45,6 +45,7 @@ class ProductCategoryController extends Controller
 
             $product_category = new product_category();
             $product_category->name = $name;
+            $product_category->arabic_name = $request->arabic_name;
             $product_category->image = '';
             $product_category->save();
 
@@ -97,6 +98,10 @@ class ProductCategoryController extends Controller
                 ], 404);
             }
             $name = trim($request->name);
+            if($request->has('arabic_name'))
+            {
+                $category->arabic_name = $request->arabic_name;
+            }
             $existingCategory = product_category::whereRaw('LOWER(TRIM(name)) = ?', [strtolower($name)])->where('_id', '!=', $request->category_id)->first();
 
             if ($existingCategory) {

@@ -46,6 +46,8 @@ Route::get('user/onboarding/getonboardings', [OnboardingController::class, 'getO
 Route::prefix('user')->middleware(['auth:user', 'scope:user'])->group(function () {
     //home api
     Route::get('home/getalldetails', [ProductController::class, 'getAllHomeDetails']);
+
+    Route::get('restaurant/get', [AdminController::class, 'getRestaurantDetailsUser']);
     //product category
     Route::get('productcategory/getallcategories', [ProductCategoryController::class, 'getAllProductCategoriesCustomer']);
     //product

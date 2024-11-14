@@ -262,4 +262,25 @@ class AdminController extends Controller
             ], 500);
         }
     }
+
+    /**
+     * Get Restaurant Details User.
+     */
+    public function getRestaurantDetailsUser(Request $request)
+    {
+        try {
+                $admin=admin::first();
+                $admin->makeHidden(['username','password']);
+            return response()->json([
+                'status_code' => 200,
+                'data'=>$admin,
+                'message' => 'Restaurant details retrieved successfully'
+            ], 200);
+        } catch (\Exception $e) {
+            return response()->json([
+                'status_code' => 500,
+                'message' => 'Failed to retrieve restaurant details.'
+            ], 500);
+        }
+    }
 }
