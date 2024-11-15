@@ -18,7 +18,7 @@ use App\Http\Controllers\Api\ProductController;
 use App\Http\Controllers\Api\ProductSizeController;
 use App\Http\Controllers\Api\UserController;
 use App\Http\Controllers\Api\VideoController;
-use App\Http\Controllers\Api\{ReferralCampaignController,DeliveryPartnerFareSettingController};
+use App\Http\Controllers\Api\{CustomizationController, ReferralCampaignController,DeliveryPartnerFareSettingController};
 
 
 use Illuminate\Support\Facades\Route;
@@ -213,6 +213,12 @@ Route::prefix('admin')->middleware(['auth:admin', 'scope:admin'])->group(functio
     // customer Wallet
     Route::post('customer/wallet/store', [ReferralCampaignController::class, 'CustomerWallet']);
     Route::get('customer/wallet/get/{user_id}', [ReferralCampaignController::class, 'CustomerWalletFetch']);
+
+    //customization
+    Route::post('customization/add', [CustomizationController::class, 'addCustomization']);
+    Route::post('customization/update', [CustomizationController::class, 'updateCustomization']);
+    Route::post('customization/delete', [CustomizationController::class, 'deleteCustomization']);
+    Route::get('customization/getall', [CustomizationController::class, 'getAllCustomizationsAdmin']);
 
 });
 

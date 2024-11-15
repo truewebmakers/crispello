@@ -17,6 +17,7 @@ class cart_product extends Model
         'product_id',
         'combo_id',
         'quantity',
+        'customization',
         'size'
     ];
 

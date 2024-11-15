@@ -9,7 +9,7 @@ use App\Models\home_slider;
 use App\Models\product;
 use App\Models\product_category;
 use App\Models\product_size;
-use App\Models\{video, RelatedProducts};
+use App\Models\{cart_product, customization, video, RelatedProducts};
 use App\Traits\ImageHandleTrait;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
@@ -42,7 +42,8 @@ class ProductController extends Controller
             'pickup_selling_price' => 'required|numeric|min:0.01|lte:pickup_actual_price',
             'dinein_actual_price' => 'required|numeric|min:0.01',
             'dinein_selling_price' => 'required|numeric|min:0.01|lte:dinein_actual_price',
-            'category_id' => 'required'
+            'category_id' => 'required',
+            'customization' => 'array|nullable',
         ], [
             'delivery_selling_price.lte' => 'The selling price must be less than or equal to the actual price.',
             'pickup_selling_price.lte' => 'The selling price must be less than or equal to the actual price.',
@@ -101,6 +102,19 @@ class ProductController extends Controller
             $product->disable = 0;
             $product->image = '';
             $product->product_category_id = $request->category_id;
+
+            if ($request->filled('customization')) {
+                if (!empty($request->customization)) {
+                    $filteredCustomization = [];
+                    foreach ($request->customization as $customization_id) {
+                        $customization = customization::find($customization_id);
+                        if ($customization) {
+                            $filteredCustomization[] = $customization->_id;
+                        }
+                    }
+                    $product->customization = !empty($filteredCustomization) ? json_encode($filteredCustomization) : null;
+                }
+            }
 
             $product->save();
             $image = $this->decodeBase64Image($request->image);
@@ -161,6 +175,7 @@ class ProductController extends Controller
             'pickup_selling_price' => 'sometimes|numeric|min:0.01',
             'dinein_actual_price' => 'sometimes|numeric|min:0.01',
             'dinein_selling_price' => 'sometimes|numeric|min:0.01',
+            'customization' => 'array|nullable',
         ]);
         if ($validator->fails()) {
             return response()->json([
@@ -361,6 +376,20 @@ class ProductController extends Controller
                     }
                 }
             }
+            if ($request->has('customization')) {
+                if (is_null($request->customization) || empty($request->customization)) {
+                    $product->customization = null;
+                } else {
+                    $filteredCustomization = [];
+                    foreach ($request->customization as $customization_id) {
+                        $customization = customization::find($customization_id);
+                        if ($customization) {
+                            $filteredCustomization[] = $customization->_id;
+                        }
+                    }
+                    $product->customization = !empty($filteredCustomization) ? json_encode($filteredCustomization) : null;
+                }
+            }
             $product->save();
 
             $productId = $request->input('product_id');
@@ -419,6 +448,27 @@ class ProductController extends Controller
             $product->best_seller = 0;
             $product->recommended = 0;
             $product->is_available = 0;
+            if ($product->customization) {
+                $customizationIds = json_decode($product->customization, true);
+                if (!empty($customizationIds)) {
+                    foreach ($customizationIds as $customizationId) {
+                        $cart_products = cart_product::where('product_id', $product->_id)->whereNotNull('customization')->whereRaw("JSON_CONTAINS(customization, $customizationId)")->get();
+                        foreach ($cart_products as $cart_product) {
+                            $customizationCartProductIds = json_decode($cart_product->customization, true);
+                            if (($key = array_search($customizationId, $customizationCartProductIds)) !== false) {
+                                unset($customizationCartProductIds[$key]);
+                            }
+                            if (empty($customizationCartProductIds)) {
+                                $cart_product->customization = null;
+                            } else {
+                                $cart_product->customization = json_encode(array_values($customizationCartProductIds));
+                            }
+                            $cart_product->save();
+                        }
+                    }
+                }
+            }
+
             $existInCombo = combo_details::join('combos', 'combo_details.combo_id', '=', 'combos._id')
                 ->where('combo_details.product_id', $product->_id)
                 ->where('combos.disable', 0)
@@ -472,6 +522,13 @@ class ProductController extends Controller
             $products = product::with('relatedProducts')->where('product_category_id', $category->_id)->get()
                 ->each(function ($product) {
                     $product->sizes = product_size::where('product_id', $product->_id)->get()->makeHidden('product_id');
+                    $customizationIds = json_decode($product->customization, true);
+                    if (!is_null($customizationIds) && is_array($customizationIds)) {
+                        $customizations = customization::whereIn('_id', $customizationIds)->get();
+                    } else {
+                        $customizations = null;
+                    }
+                    $product->customization = $customizations;
                 });
 
             return response()->json([
@@ -567,6 +624,13 @@ class ProductController extends Controller
                             // $product->actual_price = $firstSize->actual_price;
                             // $product->selling_price = $firstSize->selling_price;
                         }
+                        $customizationIds = json_decode($product->customization, true);
+                        if (!is_null($customizationIds) && is_array($customizationIds)) {
+                            $customizations = customization::whereIn('_id', $customizationIds)->get();
+                        } else {
+                            $customizations = null;
+                        }
+                        $product->customization = $customizations;
                     })
                     ->makeHidden(['disable', 'only_combo']);
             }
@@ -757,6 +821,13 @@ class ProductController extends Controller
                             $product->dinein_actual_price = $firstSize->dinein_actual_price;
                             $product->dinein_selling_price = $firstSize->dinein_selling_price;
                         }
+                        $customizationIds = json_decode($product->customization, true);
+                        if (!is_null($customizationIds) && is_array($customizationIds)) {
+                            $customizations = customization::whereIn('_id', $customizationIds)->get();
+                        } else {
+                            $customizations = null;
+                        }
+                        $product->customization = $customizations;
                     })
                     ->makeHidden(['disable', 'only_combo']);
 
@@ -813,6 +884,13 @@ class ProductController extends Controller
                             $product->dinein_actual_price = $firstSize->dinein_actual_price;
                             $product->dinein_selling_price = $firstSize->dinein_selling_price;
                         }
+                        $customizationIds = json_decode($product->customization, true);
+                        if (!is_null($customizationIds) && is_array($customizationIds)) {
+                            $customizations = customization::whereIn('_id', $customizationIds)->get();
+                        } else {
+                            $customizations = null;
+                        }
+                        $product->customization = $customizations;
                     })
                     ->makeHidden(['disable', 'only_combo']);
 
@@ -902,6 +980,13 @@ class ProductController extends Controller
                         $product->dinein_actual_price = $firstSize->dinein_actual_price;
                         $product->dinein_selling_price = $firstSize->dinein_selling_price;
                     }
+                    $customizationIds = json_decode($product->customization, true);
+                    if (!is_null($customizationIds) && is_array($customizationIds)) {
+                        $customizations = customization::whereIn('_id', $customizationIds)->get();
+                    } else {
+                        $customizations = null;
+                    }
+                    $product->customization = $customizations;
                 })
                 ->makeHidden(['disable', 'only_combo']);
             $best_seller_combos = combo::where('disable', 0)->where('best_seller', 1)->get()->map(function ($combo) {
@@ -959,6 +1044,13 @@ class ProductController extends Controller
                         $product->dinein_actual_price = $firstSize->dinein_actual_price;
                         $product->dinein_selling_price = $firstSize->dinein_selling_price;
                     }
+                    $customizationIds = json_decode($product->customization, true);
+                    if (!is_null($customizationIds) && is_array($customizationIds)) {
+                        $customizations = customization::whereIn('_id', $customizationIds)->get();
+                    } else {
+                        $customizations = null;
+                    }
+                    $product->customization = $customizations;
                 })
                 ->makeHidden(['disable', 'only_combo']);
 

@@ -18,6 +18,7 @@ return new class extends Migration
             $table->unsignedBigInteger('combo_id')->nullable();
             $table->integer('quantity')->default(1)->nullable();
             $table->unsignedBigInteger('size')->nullable();
+            $table->mediumText('customization')->nullable();
             $table->boolean('is_update')->default(0)->comment('1:update cart 0:not update cart')->nullable();
             $table->foreign('cart_id')->references('_id')->on('carts');
             $table->foreign('product_id')->references('_id')->on('products');

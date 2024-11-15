@@ -9,6 +9,7 @@ use App\Models\cart;
 use App\Models\cart_product;
 use App\Models\combo;
 use App\Models\coupon;
+use App\Models\customization;
 use App\Models\product;
 use App\Models\product_size;
 use App\Models\RelatedProducts;
@@ -31,6 +32,7 @@ class CartController extends Controller
             'combo_id' => 'required_without:product_id|integer',
             'product_id' => 'required_without:combo_id|integer',
             'product_size' => 'sometimes|integer',
+            'customization' => 'array',
         ]);
         if ($validator->fails()) {
             return response()->json([
@@ -118,6 +120,23 @@ class CartController extends Controller
                     $cart_product->cart_id = $cart->_id;
                     $cart_product->product_id = $product->_id;
                     $cart_product->size = $request->has('product_size') ? $request->product_size : null;
+                }
+                if ($product->customization && $request->filled('customization')) {
+                    if (!empty($request->customization)) {
+                        $filteredCustomization = [];
+                        $validCustomizations = json_decode($product->customization, true);
+                        foreach ($request->customization as $customization_id) {
+                            if (in_array($customization_id, $validCustomizations)) {
+                                $customization = customization::find($customization_id);
+                                if ($customization) {
+                                    $filteredCustomization[] = $customization->_id;
+                                }
+                            }
+                        }
+                        $cart_product->customization = !empty($filteredCustomization) ? json_encode($filteredCustomization) : null;
+                    } else {
+                        $cart_product->customization = null;
+                    }
                 }
             }
             $cart_product->save();
@@ -352,7 +371,7 @@ class CartController extends Controller
                         $is_combo = 1;
                     } else {
                         $product = product::where('_id', $cartDetail->product_id)
-                            ->select('_id', 'name', 'arabic_name', 'veg', 'delivery_selling_price as delivery_price', 'dinein_selling_price as dinein_price', 'pickup_selling_price as pickup_price', 'is_available', 'disable')
+                            ->select('_id', 'name', 'arabic_name', 'veg', 'delivery_selling_price as delivery_price', 'dinein_selling_price as dinein_price', 'pickup_selling_price as pickup_price', 'is_available', 'disable','customization')
                             ->first();
                     }
                     $product->quantity = $cartDetail->quantity;
@@ -380,6 +399,35 @@ class CartController extends Controller
                             ];
                             $product->price = 0;
                         }
+                    }
+                    if ($cartDetail->customization) {
+                        $customizationIds = json_decode($product->customization, true);
+                        $selectedCustomizationIds = json_decode($cartDetail->customization, true);
+
+                        if (!is_null($customizationIds) && is_array($customizationIds)) {
+                            $customizations = customization::whereIn('_id', $customizationIds)->get();
+                            $customizations = $customizations->map(function ($customization) use ($selectedCustomizationIds) {
+                                $customization->selected = in_array($customization->_id, $selectedCustomizationIds) ? 1 : 0;
+                                return $customization;
+                            });
+                        } else {
+                            $customizations = null;
+                        }
+                        $product->customization = $customizations;
+                    } else {
+                        $customizationIds = json_decode($product->customization, true);
+                        $selectedCustomizationIds = json_decode($cartDetail->customization, true);
+
+                        if (!is_null($customizationIds) && is_array($customizationIds)) {
+                            $customizations = customization::whereIn('_id', $customizationIds)->get();
+                            $customizations = $customizations->map(function ($customization) {
+                                $customization->selected = 0;
+                                return $customization;
+                            });
+                        } else {
+                            $customizations = null;
+                        }
+                        $product->customization = $customizations;
                     }
                     return $product;
                 });
@@ -426,7 +474,9 @@ class CartController extends Controller
     {
         $validator = Validator::make($request->all(), [
             'cart_id' => 'required',
-            'order_type' => 'in:Delivery,Dine In,Pickup',
+            'quantity' => 'integer|min:0',
+            // 'order_type' => 'in:Delivery,Dine In,Pickup',
+            'customization' => 'array|nullable',
             // 'table_no' => 'required_if:order_type,Dine In',
             // 'address_id' => 'required_if:order_type,Delivery|integer',
             // 'payment_method' => 'sometimes|boolean'
@@ -458,9 +508,35 @@ class CartController extends Controller
                 $cart->address_id = $request->address_id;
                 $cart->table_no = null;
             }
-            if ($request->has('order_type')) {
-                $cart->order_type = $request->order_type;
+            if ($request->filled('cart_product_id')) {
+                $cart_product = cart_product::findOrFail($request->cart_product_id);
+                if ($request->has('customization')) {
+                    if (is_null($request->customization) || empty($request->customization)) {
+                        $cart_product->customization = null;
+                    } else {
+                        $filteredCustomization = [];
+                        foreach ($request->customization as $customization_id) {
+                            $customization = customization::find($customization_id);
+                            if ($customization) {
+                                $filteredCustomization[] = $customization->_id;
+                            }
+                        }
+                        $cart_product->customization = !empty($filteredCustomization) ? json_encode($filteredCustomization) : null;
+                    }
+                    $cart_product->save();
+                }
+                if ($request->has('quantity')) {
+                    if ($request->quantity === 0 || $request->quantity == '0') {
+                        $cart_product->delete();
+                    } else {
+                        $cart_product->quantity = $request->quantity;
+                        $cart_product->save();
+                    }
+                }
             }
+            // if ($request->has('order_type')) {
+            //     $cart->order_type = $request->order_type;
+            // }
             // if ($cart->order_type === 'Dine In' && $request->has('table_no')) {
             //     $cart->table_no = $request->table_no;
             //     $cart->address_id = null;
