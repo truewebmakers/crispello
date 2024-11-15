@@ -11,6 +11,7 @@ use App\Models\combo;
 use App\Models\coupon;
 use App\Models\product;
 use App\Models\product_size;
+use App\Models\RelatedProducts;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -346,12 +347,12 @@ class CartController extends Controller
                     $is_combo = 0;
                     if ($cartDetail->combo_id) {
                         $product = combo::where('_id', $cartDetail->combo_id)
-                            ->select('_id', 'name','arabic_name', 'veg', 'delivery_selling_price as delivery_price','dinein_selling_price as dinein_price','pickup_selling_price as pickup_price', 'is_available', 'disable')
+                            ->select('_id', 'name', 'arabic_name', 'veg', 'delivery_selling_price as delivery_price', 'dinein_selling_price as dinein_price', 'pickup_selling_price as pickup_price', 'is_available', 'disable')
                             ->first();
                         $is_combo = 1;
                     } else {
                         $product = product::where('_id', $cartDetail->product_id)
-                            ->select('_id', 'name','arabic_name', 'veg', 'delivery_selling_price as delivery_price','dinein_selling_price as dinein_price','pickup_selling_price as pickup_price', 'is_available', 'disable')
+                            ->select('_id', 'name', 'arabic_name', 'veg', 'delivery_selling_price as delivery_price', 'dinein_selling_price as dinein_price', 'pickup_selling_price as pickup_price', 'is_available', 'disable')
                             ->first();
                     }
                     $product->quantity = $cartDetail->quantity;
@@ -363,7 +364,7 @@ class CartController extends Controller
                             ->first();
 
                         if ($product_size) {
-                            $product_size->makeHidden(['product_id', 'delivery_actual_price', 'delivery_selling_price','pickup_actual_price','pickup_selling_price','dinein_actual_price','dinein_selling_price']);
+                            $product_size->makeHidden(['product_id', 'delivery_actual_price', 'delivery_selling_price', 'pickup_actual_price', 'pickup_selling_price', 'dinein_actual_price', 'dinein_selling_price']);
                             $product_size->delivery_price = $product_size->delivery_selling_price;
                             $product_size->dinein_price = $product_size->dinein_selling_price;
                             $product_size->pickup_price = $product_size->pickup_selling_price;
@@ -382,7 +383,28 @@ class CartController extends Controller
                     }
                     return $product;
                 });
+            $productIds = $products->pluck('_id')->toArray();
+            $relatedProductsIds = RelatedProducts::whereIn('product_id', $productIds)->pluck('related_product_id')->toArray();
+
+            $relatedProducts = product::whereIn('_id', $relatedProductsIds)->where('disable',0)->where('is_available',1)->where('only_combo',0)->get()->each(function ($product) {
+                $product->combo = 0;
+                $sizes = product_size::where('product_id', $product->_id)->get()->makeHidden('product_id');
+                $product->sizes = $sizes;
+                if ($sizes->isNotEmpty()) {
+                    $firstSize = $sizes->first();
+                    $product->delivery_actual_price = $firstSize->delivery_actual_price;
+                    $product->delivery_selling_price = $firstSize->delivery_selling_price;
+                    $product->pickup_actual_price = $firstSize->pickup_actual_price;
+                    $product->pickup_selling_price = $firstSize->pickup_selling_price;
+                    $product->dinein_actual_price = $firstSize->dinein_actual_price;
+                    $product->dinein_selling_price = $firstSize->dinein_selling_price;
+                    // $product->actual_price = $firstSize->actual_price;
+                    // $product->selling_price = $firstSize->selling_price;
+                }
+            });
+
             $cart->products = $products;
+            $cart->related_products = $relatedProducts;
             return response()->json([
                 'status_code' => 200,
                 'data' => $cart,
