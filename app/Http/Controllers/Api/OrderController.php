@@ -9,11 +9,13 @@ use App\Models\admin_fcm_token;
 use App\Models\cart;
 use App\Models\cart_product;
 use App\Models\combo;
+use App\Models\customization;
 use App\Models\delivery_driver;
 use App\Models\delivery_fcm_token;
 use App\Models\delivery_request;
 use App\Models\notification;
 use App\Models\order;
+use App\Models\order_customization;
 use App\Models\order_product;
 use App\Models\product;
 use App\Models\product_size;
@@ -184,6 +186,22 @@ class OrderController extends Controller
                         $order_product->price = $product_size ? $product_size->pickup_selling_price : $product->pickup_selling_price;
                     }
                     $order_product->save();
+                    if ($item->customization) {
+                        $selectedCustomizationIds = json_decode($item->customization, true);
+                        if (!is_null($selectedCustomizationIds) && is_array($selectedCustomizationIds)) {
+                            foreach ($selectedCustomizationIds as $customizationId) {
+                                $customization = customization::findOrFail($customizationId);
+                                $order_customization = new order_customization();
+                                $order_customization->name = $customization->name;
+                                $order_customization->price = $customization->price;
+                                $order_customization->veg = $customization->veg;
+                                $order_customization->type = $customization->type;
+                                $order_customization->order_product_id = $order_product->_id;
+                                $order_customization->order_id = $order->_id;
+                                $order_customization->save();
+                            }
+                        }
+                    }
                 } else if ($item->combo_id) {
                     $combo = combo::where('_id', $item->combo_id)->where('disable', 0)->first();
                     if (!$combo) {
@@ -343,7 +361,6 @@ class OrderController extends Controller
                 'message' => 'Order placed successfully'
             ], 200);
         } catch (\Exception $e) {
-            print($e);
             DB::rollBack();
             return response()->json([
                 'status_code' => 500,
@@ -614,6 +631,11 @@ class OrderController extends Controller
                     }
                     $order->makeHidden('driver_id');
                     $order->products = order_product::where('order_id', $order->_id)->get()->makeHidden('order_id');
+                    $order->products = $order->products->map(function ($product) {
+                        $customizations = order_customization::where('order_product_id', $product->_id)->get();
+                        $product->customization = $customizations->isEmpty() ? null : $customizations;
+                        return $product;
+                    });
                 });
             return response()->json([
                 'status_code' => 200,
@@ -670,6 +692,11 @@ class OrderController extends Controller
                     }
                     $order->makeHidden('driver_id');
                     $order->products = order_product::where('order_id', $order->_id)->get()->makeHidden('order_id');
+                    $order->products = $order->products->map(function ($product) {
+                        $customizations = order_customization::where('order_product_id', $product->_id)->get();
+                        $product->customization = $customizations->isEmpty() ? null : $customizations;
+                        return $product;
+                    });
                 });
             return response()->json([
                 'status_code' => 200,

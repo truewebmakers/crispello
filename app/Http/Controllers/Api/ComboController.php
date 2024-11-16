@@ -59,6 +59,7 @@ class ComboController extends Controller
 
             $newCombo = new combo();
             $newCombo->name = $name;
+            $newCombo->arabic_name = $request->arabic_name;
             $newCombo->delivery_selling_price = $request->delivery_selling_price;
             $newCombo->dinein_selling_price = $request->dinein_selling_price;
             $newCombo->pickup_selling_price = $request->pickup_selling_price;
@@ -185,6 +186,9 @@ class ComboController extends Controller
                 cart_product::where('combo_id', $combo->_id)->update(['is_update' => 1]);
             }
 
+            if ($request->has('arabic_name')) {
+                $combo->arabic_name = $request->arabic_name;
+            }
             if ($request->has('delivery_selling_price')) {
                 $combo->delivery_selling_price = $request->delivery_selling_price;
             }
@@ -317,23 +321,25 @@ class ComboController extends Controller
                     ->get()
                     ->map(function ($comboDetail) {
                         $product = product::where('_id', $comboDetail->product_id)
-                            ->select('name', '_id')
+                            ->select('name','arabic_name', '_id')
                             ->first();
                         $productDetail = [
                             '_id' => $product->_id,
                             'name' => $product->name,
+                            'arabic_name' => $product->arabic_name,
                             'quantity' => $comboDetail->quantity,
                             'size' => null,
                         ];
                         if ($comboDetail->size) {
                             $product_size = product_size::where('_id', $comboDetail->size)
-                                ->select('_id', 'size')
+                                ->select('_id', 'size','arabic_size')
                                 ->first();
 
                             if ($product_size) {
                                 $productDetail['size'] = [
                                     '_id' => $product_size->_id,
                                     'name' => $product_size->size,
+                                    'arabic_name' => $product_size->arabic_size,
                                 ];
                             }
                         }
@@ -368,22 +374,24 @@ class ComboController extends Controller
                     ->map(function ($comboDetail) {
 
                         $product = product::where('_id', $comboDetail->product_id)
-                            ->select('name', '_id')
+                            ->select('name','arabic_name', '_id')
                             ->first();
                         $productDetail = [
                             '_id' => $product->_id,
                             'name' => $product->name,
+                            'arabic_name' => $product->arabic_name,
                             'quantity' => $comboDetail->quantity,
                             'size' => null,
                         ];
 
                         if ($comboDetail->size) {
                             $product_size = product_size::where('_id', $comboDetail->size)
-                                ->select('_id', 'size')
+                                ->select('_id', 'size','arabic_size')
                                 ->first();
 
                             if ($product_size) {
                                 $productDetail['size'] = $product_size->size;
+                                $productDetail['arabic_size'] = $product_size->arabic_size;
                             }
                         }
                         return $productDetail;

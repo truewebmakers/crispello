@@ -69,6 +69,7 @@ class ProductSizeController extends Controller
                 }
                 $product_size = new product_size();
                 $product_size->size = $name;
+                $product_size->arabic_size = $item['arabic_size'] ?? null;
                 $product_size->delivery_actual_price = trim($item['delivery_actual_price']);
                 $product_size->delivery_selling_price = trim($item['delivery_selling_price']);
                 $product_size->pickup_actual_price = trim($item['pickup_actual_price']);
@@ -149,6 +150,7 @@ class ProductSizeController extends Controller
                     $dineinOldPrice = $product_size->dinein_selling_price;
                     $pickupOldPrice = $product_size->pickup_selling_price;
                     $product_size->size = $name;
+                    $product_size->arabic_size = $item['arabic_size'] ?? null;
                     $product_size->delivery_actual_price = trim($item['delivery_actual_price']);
                     $product_size->delivery_selling_price = trim($item['delivery_selling_price']);
                     $product_size->pickup_actual_price = trim($item['pickup_actual_price']);

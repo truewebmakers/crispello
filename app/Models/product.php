@@ -30,6 +30,7 @@ class product extends Model
         'pickup_selling_price',
         'dinein_actual_price',
         'dinein_selling_price',
+        'customization'
     ];
 
     public function productCategory()

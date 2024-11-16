@@ -39,4 +39,8 @@ class order_product extends Model
     {
         return $this->belongsTo(combo::class, 'combo_id');
     }
+    public function orderCustomization()
+    {
+        return $this->hasMany(order_customization::class, 'order_product_id');
+    }
 }

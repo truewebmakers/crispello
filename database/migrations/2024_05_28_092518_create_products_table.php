@@ -23,6 +23,7 @@ return new class extends Migration
             $table->tinyText('dinein_actual_price')->nullable();
             $table->tinyText('dinein_selling_price')->nullable();
             $table->mediumText('image')->nullable();
+            $table->mediumText('customization')->nullable();
             $table->boolean('best_seller')->default(0)->comment('0:not best seller,1:best seller')->nullable();
             $table->boolean('recommended')->default(0)->comment('0:not recommended,1:recommended')->nullable();
             $table->boolean('only_combo')->default(0)->comment('0:regular ,1:only for combo')->nullable();

@@ -51,4 +51,8 @@ class order extends Model
     {
         return $this->hasMany(delivery_request::class, 'order_id');
     }
+    public function orderCustomization()
+    {
+        return $this->hasMany(order_customization::class, 'order_id');
+    }
 }
