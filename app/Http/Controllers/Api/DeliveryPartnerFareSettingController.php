@@ -109,6 +109,8 @@ class DeliveryPartnerFareSettingController extends Controller
     }
 
 
+
+
     public function DeliveryPartnerStorelogs(Request $request)
     {
         // Validate the incoming request
@@ -145,6 +147,31 @@ class DeliveryPartnerFareSettingController extends Controller
         // Return a success response
         return response()->json([
             'message' => 'Delivery created successfully.',
+            'data' => $delivery
+        ], 201);
+    }
+
+
+    public function UpdateLogs(Request $request)
+    {
+        // Validate the incoming request
+        $validator = Validator::make($request->all(), [
+            'status' => 'nullable|in:delivered,in-progress,out-of-delivery',
+        ]);
+
+        // If validation fails, return with errors
+        if ($validator->fails()) {
+            return response()->json(['errors' => $validator->errors()], 422);
+        }
+
+        // Create a new delivery record
+        $delivery = DeliveryPartnerFareLogs::where('id',$request->id)->update([
+            'status' => $request->status,
+        ]);
+
+        // Return a success response
+        return response()->json([
+            'message' => 'Delivery updated successfully.',
             'data' => $delivery
         ], 201);
     }

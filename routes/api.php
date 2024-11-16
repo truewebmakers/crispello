@@ -232,6 +232,7 @@ Route::prefix('delivery')->middleware(['auth:delivery_driver', 'scope:delivery_d
 
     Route::get('log/getall', [DeliveryPartnerFareSettingController::class, 'DeliveryPartnerStorelogsget']);
     Route::get('log/store', [DeliveryPartnerFareSettingController::class, 'DeliveryPartnerStorelogs']);
+    Route::get('log/update/{id}', [DeliveryPartnerFareSettingController::class, 'UpdateLogs']);
 
 
 
