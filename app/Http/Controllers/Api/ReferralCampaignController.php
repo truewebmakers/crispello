@@ -148,6 +148,24 @@ class ReferralCampaignController extends Controller
         ], 200);
     }
 
+
+    public function fetchDataWithOutCode(Request $request)
+    {
+        $campaigns =  ReferralCode::with('ReferralCampaign')->first();
+        if(empty($campaigns)){
+            return response()->json([
+                'status_code' => 404,
+                'message' => 'Not Found',
+            ], 404);
+        }
+
+        return response()->json([
+            'status_code' => 200,
+            'message' => 'Referral Code fetched successfully',
+            'data' =>  $campaigns
+        ], 200);
+    }
+
     public function referralLog(Request $request)
     {
         $request->validate([

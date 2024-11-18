@@ -210,6 +210,8 @@ Route::prefix('admin')->middleware(['auth:admin', 'scope:admin'])->group(functio
     Route::post('referral/log/store', [ReferralCampaignController::class, 'referralLog']);
 
     Route::get('referral/get/code', [ReferralCampaignController::class, 'fetchDataWithCode']);
+    Route::get('referral/get/withoutcode', [ReferralCampaignController::class, 'fetchDataWithOutCode']);
+
 
     // customer Wallet
     Route::post('customer/wallet/store', [ReferralCampaignController::class, 'CustomerWallet']);
