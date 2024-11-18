@@ -104,7 +104,7 @@ class ReferralCampaignController extends Controller
     {
         $campaigns = ReferralCampaign::first();
 
-        if($campaigns->isEmpty()){
+        if(empty($campaigns)){
             return response()->json([
                 'status_code' => 404,
                 'message' => 'Not Found',
@@ -134,7 +134,7 @@ class ReferralCampaignController extends Controller
     {
         $code = $request->input('code');
         $campaigns =  ReferralCode::with('ReferralCampaign')->where(['code' =>$code])->first();
-        if($campaigns->isEmpty()){
+        if(empty($campaigns)){
             return response()->json([
                 'status_code' => 404,
                 'message' => 'Not Found',
