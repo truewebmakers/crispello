@@ -62,7 +62,7 @@ class UserController extends Controller
                 ], 200);
             }
 
-            $existingUser = User::where('phoneno', $request->phoneno)->first();
+            $existingUser = User::with('referralcode')->where('phoneno', $request->phoneno)->first();
             if (!$existingUser) {
                 $user = new User();
                 $user->phoneno = $request->phoneno;

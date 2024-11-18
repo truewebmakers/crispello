@@ -105,6 +105,9 @@ Route::prefix('user')->middleware(['auth:user', 'scope:user'])->group(function (
     Route::post('referral/log/store', [ReferralCampaignController::class, 'referralLog']);
 
     Route::get('referral/get/code', [ReferralCampaignController::class, 'fetchDataWithCode']);
+    Route::post('referral/create/code', [ReferralCampaignController::class, 'craeteUserCode']);
+
+
 
     // customer Wallet
     Route::post('customer/wallet/store', [ReferralCampaignController::class, 'CustomerWallet']);
@@ -236,7 +239,6 @@ Route::prefix('delivery')->middleware(['auth:delivery_driver', 'scope:delivery_d
     Route::get('getall', [DeliveryController::class, 'getAllCompletedAndRejectedDeliveries']);
     Route::get('request/get',[DeliveryController::class,'getDeliveryRequest']);
     Route::post('request/status/change',[DeliveryController::class,'changeDeliveryRequestStatus']);
-
 
     Route::get('log/getall', [DeliveryPartnerFareSettingController::class, 'DeliveryPartnerStorelogsget']);
     Route::get('log/store', [DeliveryPartnerFareSettingController::class, 'DeliveryPartnerStorelogs']);

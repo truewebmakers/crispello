@@ -65,4 +65,8 @@ class User extends Authenticatable
     {
         return $this->hasMany(notification::class, 'user_id');
     }
+    public function referralcode()
+    {
+        return $this->hasOne(ReferralCode::class);
+    }
 }

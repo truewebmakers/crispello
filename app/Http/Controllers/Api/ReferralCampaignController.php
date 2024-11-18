@@ -23,7 +23,7 @@ class ReferralCampaignController extends Controller
 
         ]);
 
-
+        $referalCode = strtoupper(substr(uniqid(), -6));
         $campaign = ReferralCampaign::create([
             'title' => $request->input('title'),
             'loyalty_points' => $request->input('loyalty_points'),
@@ -34,14 +34,35 @@ class ReferralCampaignController extends Controller
             'minimum_purchase' => $request->input('minimum_purchase'),
             'status' => $request->input('status'),
             'added_by' => Auth::id(),  // Assign the logged-in user's ID
+            'code' =>  $referalCode
+
         ]);
-        ReferralCode::create([
-            'referral_campaign_id' => $campaign->id,
-            'user_id' => Auth::id(),
-            'code' => strtoupper(uniqid())
-        ]);
+
         return response()->json([
             'status_code' => 200,
+            'message' => 'Referral Code added successfully'
+        ], 200);
+    }
+
+
+    public function craeteUserCode(Request $request){
+        $request->validate([
+            'campaign_id' => 'required'
+        ]);
+        $referalCode = strtoupper(substr(uniqid(), -6));
+        $isExist = ReferralCode::where('user_id',Auth::id())->get()->first();
+        if(empty( $isExist)){
+            ReferralCode::create([
+                'referral_campaign_id' => $request->campaign_id,
+                'user_id' => Auth::id(),
+                'code' =>  $referalCode
+            ]);
+        }
+
+
+        return response()->json([
+            'status_code' => 200,
+             'code' =>  $referalCode,
             'message' => 'Referral Code added successfully'
         ], 200);
     }
@@ -61,7 +82,7 @@ class ReferralCampaignController extends Controller
         ]);
 
 
-        $campaign = ReferralCampaign::where(['id' => $id])->update([
+         ReferralCampaign::where(['id' => $id])->update([
             'title' => $request->input('title'),
             'loyalty_points' => $request->input('loyalty_points'),
             'currency' => $request->input('currency'),
@@ -81,7 +102,7 @@ class ReferralCampaignController extends Controller
 
     public function index()
     {
-        $campaigns = ReferralCampaign::with('ReferralCode')->get();
+        $campaigns = ReferralCampaign::get();
 
         if($campaigns->isEmpty()){
             return response()->json([
