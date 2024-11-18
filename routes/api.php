@@ -56,8 +56,6 @@ Route::prefix('user')->middleware(['auth:user', 'scope:user'])->group(function (
     Route::get('product/getrecommendeds', [ProductController::class, 'getRecommendeds']);
     Route::get('product/search', [ProductController::class, 'searchProduct']);
 
-
-
     //profile
     Route::post('profile/update', [UserController::class, 'updateProfile']);
     Route::get('profile/get', [UserController::class, 'getProfile']);
