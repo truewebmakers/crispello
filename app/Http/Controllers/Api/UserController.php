@@ -109,7 +109,7 @@ class UserController extends Controller
             DB::rollBack();
             return response()->json([
                 'status_code' => 500,
-                'message' => 'Failed to login user.' .  $e
+                'message' => 'Failed to login user.'
             ], 500);
         }
     }

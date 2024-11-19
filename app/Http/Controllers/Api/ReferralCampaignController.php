@@ -38,6 +38,12 @@ class ReferralCampaignController extends Controller
 
         ]);
 
+        ReferralCode::create([
+            'referral_campaign_id' => $campaign->id,
+            'user_id' => Auth::id(),
+            'code' =>  $referalCode
+        ]);
+
         return response()->json([
             'status_code' => 200,
             'message' => 'Referral Code added successfully'
