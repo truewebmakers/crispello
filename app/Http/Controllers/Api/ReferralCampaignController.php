@@ -22,8 +22,8 @@ class ReferralCampaignController extends Controller
             'status' => 'required|in:active,inactive',
 
         ]);
-
-        $referalCode = strtoupper(substr(uniqid(), -6));
+        $referalCode = strtoupper(uniqid());
+        // $referalCode = strtoupper(substr(uniqid(), -6));
         $campaign = ReferralCampaign::create([
             'title' => $request->input('title'),
             'loyalty_points' => $request->input('loyalty_points'),
@@ -133,19 +133,38 @@ class ReferralCampaignController extends Controller
     public function fetchDataWithCode(Request $request)
     {
         $code = $request->input('code');
-        $campaigns =  ReferralCode::with('ReferralCampaign')->where(['code' =>$code])->first();
-        if(empty($campaigns)){
+        $reffercampaign =  ReferralCampaign::where('code',$code)->get()->first();
+
+        if(!empty($reffercampaign)){
             return response()->json([
                 'status_code' => 404,
-                'message' => 'Not Found',
+                'message' => 'Reffer campaign',
+                'data' =>  $reffercampaign,
+                'code_type' => 'admin'
             ], 404);
+
+        }elseif(empty($reffercampaign)){
+            $campaigns =  ReferralCode::with('ReferralCampaign')->where(['code' =>$code])->first();
+            if(empty($campaigns)){
+                return response()->json([
+                    'status_code' => 404,
+                    'message' => 'Not Found',
+                ], 404);
+            }else{
+                return response()->json([
+                    'status_code' => 200,
+                    'message' => 'Referral Code fetched successfully',
+                    'data' =>  $campaigns,
+                    'code_type' => 'user'
+                ], 200);
+            }
+
         }
 
-        return response()->json([
-            'status_code' => 200,
-            'message' => 'Referral Code fetched successfully',
-            'data' =>  $campaigns
-        ], 200);
+
+
+
+
     }
 
 
@@ -171,6 +190,7 @@ class ReferralCampaignController extends Controller
     {
         $request->validate([
             'referral_code_id ' => 'required|string',
+            'point_credit_user_id' => 'required',
             'referrer_user_id' => 'required|integer',
             'referred_user_id' => 'required',
             'points' => 'required|numeric',
@@ -179,8 +199,9 @@ class ReferralCampaignController extends Controller
         ]);
 
 
-        $campaign = ReferralLog::create([
+         ReferralLog::create([
             'referral_code_id' => $request->input('referral_code_id'),
+            'point_credit_user_id' => $request->input('point_credit_user_id'),
             'referrer_user_id' => $request->input('referrer_user_id'),
             'referred_user_id' => $request->input('referred_user_id'),
             'points' => $request->input('points'),
@@ -191,6 +212,34 @@ class ReferralCampaignController extends Controller
             'status_code' => 200,
             'message' => 'Referral Log added successfully'
         ], 200);
+    }
+
+    public function referralget(Request $request)
+    {
+
+        $request->validate([
+            'user_id ' => 'required|string',
+        ]);
+        $userId = $request->input('user_id');
+        $query = ReferralLog::where('point_credit_user_id', $userId);
+
+
+        $referralLogsCredit = $query->where('status', 'credit')->get();
+        $referralLogsSpend = $query->where('status', 'spent')->get();
+
+        $totalcredit = $referralLogsCredit->sum('points');
+        $totalspent = $referralLogsSpend->sum('points');
+        $totalPoints =  $totalcredit - $totalspent;
+
+        $logs = $query->get();
+
+        return response()->json([
+            'status_code' => 200,
+            'message' => 'Referral Log get successfully',
+            'data' => $logs,
+            'total_points' =>$totalPoints
+        ], 200);
+
     }
 
     public function CustomerWallet(Request $request)

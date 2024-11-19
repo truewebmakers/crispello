@@ -101,6 +101,7 @@ Route::prefix('user')->middleware(['auth:user', 'scope:user'])->group(function (
 
     Route::post('referral/delete/{id}', [ReferralCampaignController::class, 'delete']);
     Route::post('referral/log/store', [ReferralCampaignController::class, 'referralLog']);
+    Route::post('referral/log/get', [ReferralCampaignController::class, 'referralget']);
 
     Route::get('referral/get/code', [ReferralCampaignController::class, 'fetchDataWithCode']);
     Route::post('referral/create/code', [ReferralCampaignController::class, 'craeteUserCode']);

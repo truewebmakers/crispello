@@ -11,8 +11,10 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::table('referral_campaigns', function (Blueprint $table) {
-            $table->string('code',191)->unique();
+        Schema::table('referral_logs', function (Blueprint $table) {
+
+            $table->unsignedBigInteger('point_credit_user_id')->nullable();
+            $table->foreign('point_credit_user_id')->references('_id')->on('users');
         });
     }
 
@@ -21,9 +23,9 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::table('referral_campaigns', function (Blueprint $table) {
+        Schema::table('referral_logs', function (Blueprint $table) {
             //
-            $table->dropColumn('code');
+            $table->dropColumn('point_credit_user_id');
         });
     }
 };

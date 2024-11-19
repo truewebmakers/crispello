@@ -24,7 +24,7 @@ return new class extends Migration
 
             $table->integer('points')->nullable();
 
-            $table->enum('status', ['credit', 'spent'])->default('credit');
+            $table->enum('status', ['credit', 'inactive'])->default('credit');
 
 
             $table->timestamps();
