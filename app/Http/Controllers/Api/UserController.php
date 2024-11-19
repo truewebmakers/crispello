@@ -61,9 +61,10 @@ class UserController extends Controller
                     'message' => 'Invalid OTP.'
                 ], 200);
             }
-
+            $newUser = false;
             $existingUser = User::with('referralcode')->where('phoneno', $request->phoneno)->first();
             if (!$existingUser) {
+                $newUser = true;
                 $user = new User();
                 $user->phoneno = $request->phoneno;
                 $user->name = null;
@@ -78,6 +79,7 @@ class UserController extends Controller
                 $cart->user_id = $user->_id;
                 $cart->save();
             } else {
+                $newUser = false;
                 $user = $existingUser;
             }
             $existingDevice = user_fcm_token::where('device_id', $request->device_id)->first();
@@ -100,6 +102,7 @@ class UserController extends Controller
                 'status_code' => 200,
                 'data' => $user,
                 'token' => $token,
+                'is_new' => $newUser,
                 'message' => 'User logged in successfully.'
             ], 200);
         } catch (\Exception $e) {
