@@ -137,11 +137,11 @@ class ReferralCampaignController extends Controller
 
         if(!empty($reffercampaign)){
             return response()->json([
-                'status_code' => 404,
+                'status_code' => 200,
                 'message' => 'Reffer campaign',
                 'data' =>  $reffercampaign,
                 'code_type' => 'admin'
-            ], 404);
+            ], 200);
 
         }elseif(empty($reffercampaign)){
             $campaigns =  ReferralCode::with('ReferralCampaign')->where(['code' =>$code])->first();
