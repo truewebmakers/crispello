@@ -151,7 +151,8 @@ class ReferralCampaignController extends Controller
 
     public function fetchDataWithOutCode(Request $request)
     {
-        $campaigns =  ReferralCode::with('ReferralCampaign')->first();
+
+        $campaigns = ReferralCampaign::first();
         if(empty($campaigns)){
             return response()->json([
                 'status_code' => 404,
