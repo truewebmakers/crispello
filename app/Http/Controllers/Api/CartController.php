@@ -374,6 +374,7 @@ class CartController extends Controller
                             ->select('_id', 'name', 'arabic_name', 'veg', 'delivery_selling_price as delivery_price', 'dinein_selling_price as dinein_price', 'pickup_selling_price as pickup_price', 'is_available', 'disable','customization')
                             ->first();
                     }
+                    $product->cart_product_id = $cartDetail->_id;
                     $product->quantity = $cartDetail->quantity;
                     $product->is_update = $cartDetail->is_update;
                     $product->is_combo = $is_combo;
@@ -449,6 +450,13 @@ class CartController extends Controller
                     // $product->actual_price = $firstSize->actual_price;
                     // $product->selling_price = $firstSize->selling_price;
                 }
+                $customizationIds = json_decode($product->customization, true);
+                if (!is_null($customizationIds) && is_array($customizationIds)) {
+                    $customizations = customization::whereIn('_id', $customizationIds)->get();
+                } else {
+                    $customizations = null;
+                }
+                $product->customization = $customizations;
             });
 
             $cart->products = $products;
