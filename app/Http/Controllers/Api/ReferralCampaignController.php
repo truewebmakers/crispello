@@ -33,7 +33,7 @@ class ReferralCampaignController extends Controller
             'condition_make_purchase' => $request->input('condition_make_purchase'),
             'minimum_purchase' => $request->input('minimum_purchase'),
             'status' => $request->input('status'),
-            'added_by' => Auth::id(),  // Assign the logged-in user's ID
+            'added_by' => Auth::id(),
             'code' =>  $referalCode
 
         ]);
