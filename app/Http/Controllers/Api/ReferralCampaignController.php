@@ -224,7 +224,7 @@ class ReferralCampaignController extends Controller
     {
 
         $request->validate([
-            'user_id ' => 'required|string',
+            'user_id' => 'required',
         ]);
         $userId = $request->input('user_id');
         $query = ReferralLog::where('point_credit_user_id', $userId);
