@@ -200,6 +200,8 @@ class ReferralCampaignController extends Controller
             'referrer_user_id' => 'required',
             'referred_user_id' => 'required',
             'points' => 'required|numeric',
+            'amount' => 'required|numeric',
+            'currency' => 'required',
             'status' => 'required|in:credit,inactive',
 
         ]);
@@ -211,6 +213,8 @@ class ReferralCampaignController extends Controller
             'referrer_user_id' => $request->input('referrer_user_id'),
             'referred_user_id' => $request->input('referred_user_id'),
             'points' => $request->input('points'),
+            'amount' => $request->input('amount'),
+            'currency' => $request->input('currency'),
             'status' => $request->input('status'),
         ]);
 
