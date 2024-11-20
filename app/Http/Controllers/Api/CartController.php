@@ -10,6 +10,7 @@ use App\Models\cart_product;
 use App\Models\combo;
 use App\Models\coupon;
 use App\Models\customization;
+use App\Models\extra_setting;
 use App\Models\product;
 use App\Models\product_size;
 use App\Models\RelatedProducts;
@@ -319,7 +320,24 @@ class CartController extends Controller
                         'message' => 'Address not found.'
                     ], 404);
                 }
-                $admin_address = admin::select('latitude', 'longitude', 'delivery_charge', 'free_upto_km', 'delivery_coverage_km')->first();
+                // Fetch admin details
+                $adminUser = User::where('user_role', 'admin')->first();
+                if ($adminUser) {
+                    $adminAddress = address::where('user_id', $adminUser->_id)->first(['latitude', 'longitude']);
+                    $deliverySettings = extra_setting::where('added_by', $adminUser->_id)
+                        ->first(['delivery_charge', 'free_upto_km', 'delivery_coverage_km']);
+
+                    $admin_address = (object) [
+                        'latitude' => $adminAddress->latitude ?? null,
+                        'longitude' => $adminAddress->longitude ?? null,
+                        'delivery_charge' => $deliverySettings->delivery_charge ?? null,
+                        'free_upto_km' => $deliverySettings->free_upto_km ?? null,
+                        'delivery_coverage_km' => $deliverySettings->delivery_coverage_km ?? null,
+                    ];
+                } else {
+                    $admin_address = null;
+                }
+                // $admin_address = admin::select('latitude', 'longitude', 'delivery_charge', 'free_upto_km', 'delivery_coverage_km')->first();
                 if ($admin_address && $admin_address->latitude && $admin_address->longitude && $address->latitude && $address->longitude) {
                     $distance = $this->calculateDistance(
                         ['latitude' => $admin_address->latitude, 'longitude' => $admin_address->longitude],
@@ -371,7 +389,7 @@ class CartController extends Controller
                         $is_combo = 1;
                     } else {
                         $product = product::where('_id', $cartDetail->product_id)
-                            ->select('_id', 'name', 'arabic_name', 'veg', 'delivery_selling_price as delivery_price', 'dinein_selling_price as dinein_price', 'pickup_selling_price as pickup_price', 'is_available', 'disable','customization')
+                            ->select('_id', 'name', 'arabic_name', 'veg', 'delivery_selling_price as delivery_price', 'dinein_selling_price as dinein_price', 'pickup_selling_price as pickup_price', 'is_available', 'disable', 'customization')
                             ->first();
                     }
                     $product->cart_product_id = $cartDetail->_id;
@@ -435,7 +453,7 @@ class CartController extends Controller
             $productIds = $products->pluck('_id')->toArray();
             $relatedProductsIds = RelatedProducts::whereIn('product_id', $productIds)->pluck('related_product_id')->toArray();
 
-            $relatedProducts = product::whereIn('_id', $relatedProductsIds)->where('disable',0)->where('is_available',1)->where('only_combo',0)->get()->each(function ($product) {
+            $relatedProducts = product::whereIn('_id', $relatedProductsIds)->where('disable', 0)->where('is_available', 1)->where('only_combo', 0)->get()->each(function ($product) {
                 $product->combo = 0;
                 $sizes = product_size::where('product_id', $product->_id)->get()->makeHidden('product_id');
                 $product->sizes = $sizes;

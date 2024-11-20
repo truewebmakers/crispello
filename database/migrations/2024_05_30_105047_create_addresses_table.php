@@ -13,7 +13,6 @@ return new class extends Migration
     {
         Schema::create('addresses', function (Blueprint $table) {
             $table->id('_id');
-            $table->mediumText('location')->nullable();
             $table->tinyText('latitude')->nullable();
             $table->tinyText('longitude')->nullable();
             $table->mediumText('house_no')->nullable();

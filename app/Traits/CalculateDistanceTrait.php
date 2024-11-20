@@ -2,7 +2,6 @@
 
 namespace App\Traits;
 
-use App\Models\admin;
 use Illuminate\Support\Facades\Http;
 
 trait CalculateDistanceTrait

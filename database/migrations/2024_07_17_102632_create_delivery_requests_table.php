@@ -17,7 +17,7 @@ return new class extends Migration
             $table->enum('status', ['pending', 'accepted', 'cancelled','rejected'])->default('pending')->nullable();
             $table->primary(['order_id', 'driver_id']);
             $table->foreign('order_id')->references('_id')->on('orders');
-            $table->foreign('driver_id')->references('_id')->on('delivery_drivers');
+            $table->foreign('driver_id')->references('_id')->on('users');
             $table->timestamps();
         });
     }

@@ -23,7 +23,6 @@ class order extends Model
         'payment_method',
         'payment_id',
         'table_no',
-        'location',
         'longitude',
         'latitude',
         'house_no',
@@ -35,11 +34,6 @@ class order extends Model
     public function user()
     {
         return $this->belongsTo(User::class, 'user_id');
-    }
-
-    public function driver()
-    {
-        return $this->belongsTo(delivery_driver::class, 'driver_id');
     }
 
     public function orderProducts()

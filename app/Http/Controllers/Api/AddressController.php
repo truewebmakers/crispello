@@ -21,7 +21,6 @@ class AddressController extends Controller
             'save_as' => 'required',
             'house_no' => 'required',
             'area' => 'required',
-            // 'location' => 'required',
             'latitude' => 'required|numeric',
             'longitude' => 'required|numeric',
             'user_id' => 'required',
@@ -48,7 +47,6 @@ class AddressController extends Controller
             $address->save_as = $request->save_as;
             $address->house_no = $request->house_no;
             $address->area = $request->area;
-            $address->location = $request->location;
             $address->latitude = $request->latitude;
             $address->longitude = $request->longitude;
             $address->user_id = $user->_id;
@@ -118,9 +116,6 @@ class AddressController extends Controller
                     'status_code' => 404,
                     'message' => 'Address not Found'
                 ], 404);
-            }
-            if ($request->has('location')) {
-                $address->location = $request->location;
             }
             if ($request->filled('latitude')) {
                 $address->latitude = $request->latitude;

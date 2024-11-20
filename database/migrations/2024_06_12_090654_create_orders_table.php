@@ -24,7 +24,6 @@ return new class extends Migration
             $table->boolean('payment_method')->nullable()->comment('0:cod or pay at hotel,1:payment gateway')->nullable();
             $table->tinyText('payment_id')->nullable();
             $table->tinyText('table_no')->nullable();
-            $table->mediumText('location')->nullable();
             $table->tinyText('longitude')->nullable();
             $table->tinyText('latitude')->nullable();
             $table->mediumText('house_no')->nullable();
@@ -32,7 +31,7 @@ return new class extends Migration
             $table->mediumText('options_to_reach')->nullable();
             $table->unsignedBigInteger('coupon_id')->nullable();
             $table->foreign('user_id')->references('_id')->on('users');
-            $table->foreign('driver_id')->references('_id')->on('delivery_drivers');
+            $table->foreign('driver_id')->references('_id')->on('users');
             $table->timestamps();
         });
     }

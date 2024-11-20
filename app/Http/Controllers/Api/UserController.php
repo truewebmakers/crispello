@@ -79,13 +79,19 @@ class UserController extends Controller
                 $cart->user_id = $user->_id;
                 $cart->save();
             } else {
+                $existingUser = User::with('referralcode')->where('phoneno', $request->phoneno)->where('user_role', 'user')->first();
+                if (!$existingUser) {
+                    return response()->json([
+                        'status_code' => 404,
+                        'message' => 'You can not register with this number'
+                    ], 404);
+                }
                 $newUser = false;
                 $user = $existingUser;
             }
-            $existingDevice = user_fcm_token::where('device_id', $request->device_id)->first();
+            $existingDevice = user_fcm_token::where('device_id', $request->device_id)->where('user_id',$user->_id)->first();
             if ($existingDevice) {
                 $existingDevice->token = $request->token;
-                $existingDevice->user_id = $user->_id;
                 $existingDevice->save();
             } else {
                 $newDevice = new user_fcm_token();
@@ -98,6 +104,7 @@ class UserController extends Controller
 
             DB::commit();
             $user->device_id = $request->device_id;
+            $user->makeHidden(['password']);
             return response()->json([
                 'status_code' => 200,
                 'data' => $user,
@@ -154,7 +161,16 @@ class UserController extends Controller
             //         $user->phoneno = $request->phoneno;
             //     }
             // }
+            
             if ($request->has('email')) {
+                $existingUser=User::where('email',$request->email)->where('_id','!=',$user->_id)->first();
+                if($existingUser)
+                {
+                    return response()->json([
+                        'status_code' => 400,
+                        'message' => 'You can not use this email address'
+                    ], 400);
+                }
                 $user->email = $request->email;
             }
             if ($request->has('dob')) {

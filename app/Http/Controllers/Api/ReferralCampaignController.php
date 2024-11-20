@@ -139,7 +139,7 @@ class ReferralCampaignController extends Controller
     public function fetchDataWithCode(Request $request)
     {
         $code = $request->input('code');
-        $reffercampaign =  ReferralCampaign::where('code',$code)->get()->first();
+        $reffercampaign =  ReferralCode::with('ReferralCampaign')->where('code',$code)->get()->first();
 
         if(!empty($reffercampaign)){
             return response()->json([
@@ -150,7 +150,7 @@ class ReferralCampaignController extends Controller
             ], 200);
 
         }elseif(empty($reffercampaign)){
-            $campaigns =  ReferralCode::with('ReferralCampaign')->where(['code' =>$code])->first();
+            $campaigns =  ReferralCampaign::where(['code' =>$code])->first();
             if(empty($campaigns)){
                 return response()->json([
                     'status_code' => 404,

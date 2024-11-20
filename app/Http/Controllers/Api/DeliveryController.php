@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\address;
 use Illuminate\Http\Request;
 use App\Models\admin;
 use App\Models\admin_fcm_token;
@@ -13,6 +14,7 @@ use App\Models\order;
 use App\Models\order_customization;
 use App\Models\order_product;
 use App\Models\User;
+use App\Models\user_fcm_token;
 use Illuminate\Support\Facades\Validator;
 use App\Traits\CalculateDistanceTrait;
 use Illuminate\Support\Facades\DB;
@@ -37,7 +39,7 @@ class DeliveryController extends Controller
             ], 400);
         }
         try {
-            $driver = delivery_driver::find($request->driver_id);
+            $driver = User::find($request->driver_id);
             if (!$driver) {
                 return response()->json([
                     'status_code' => 404,
@@ -51,11 +53,11 @@ class DeliveryController extends Controller
                 if (!$order) {
                     continue;
                 }
-                $order->makeHidden('delivery_charge', 'order_type', 'payment_id', 'table_no', 'location', 'longitude', 'latitude', 'house_no', 'area', 'options_to_reach', 'coupon_id', 'user_id');
+                $order->makeHidden('delivery_charge', 'order_type', 'payment_id', 'table_no','longitude', 'latitude', 'house_no', 'area', 'options_to_reach', 'coupon_id', 'user_id');
                 if ($order->delivery_charge) {
                     $order->total += $order->delivery_charge;
                 }
-                $order->products = order_product::select('_id', 'name','arabic_name', 'size','arabic_size', 'quantity')->where('order_id', $req->order_id)->get();
+                $order->products = order_product::select('_id', 'name', 'arabic_name', 'size', 'arabic_size', 'quantity')->where('order_id', $req->order_id)->get();
                 $order->products = $order->products->map(function ($product) {
                     $customizations = order_customization::where('order_product_id', $product->_id)->get();
                     $product->customization = $customizations->isEmpty() ? null : $customizations;
@@ -65,17 +67,35 @@ class DeliveryController extends Controller
                 if (!$user) {
                     continue;
                 }
-                $user->location = $order->location;
                 $user->latitude = $order->latitude;
                 $user->longitude = $order->longitude;
                 $user->house_no = $order->house_no;
                 $user->area = $order->area;
                 $user->options_to_reach = $order->options_to_reach;
-                $restaurant = admin::select('_id', 'phoneno', 'email', 'location', 'latitude', 'longitude')->first();
-                if (!$restaurant) {
+                // $restaurant = admin::select('_id', 'phoneno', 'email', 'latitude', 'longitude')->first();
+                // if (!$restaurant) {
+                //     continue;
+                // }
+                $adminUser = User::where('user_role', 'admin')->first();
+                if (!$adminUser) {
                     continue;
                 }
-                $restaurant->name = "Crispello";
+
+                $adminAddress = address::where('user_id', $adminUser->_id)->first(['latitude', 'longitude', 'area']);
+                if (!$adminAddress) {
+                    continue;
+                }
+
+                $restaurant = (object) [
+                    '_id' => $adminUser->_id,
+                    'phoneno' => $adminUser->phoneno ?? null,
+                    'email' => $adminUser->email ?? null,
+                    'latitude' => $adminAddress->latitude ?? null,
+                    'longitude' => $adminAddress->longitude ?? null,
+                    'area' => $adminAddress->area ?? null,
+                    'name' => 'Crispello'
+                ];
+                // $restaurant->name = "Crispello";
                 if ($user->latitude && $user->longitude && $restaurant->latitude && $restaurant->longitude) {
                     $distance = $this->calculateDistanceWithDuration(['latitude' => $restaurant->latitude, 'longitude' => $restaurant->longitude], ['latitude' => $user->latitude, 'longitude' => $user->longitude]);
                     $order->distance = $distance['distance']['text'];
@@ -115,7 +135,7 @@ class DeliveryController extends Controller
             ], 400);
         }
         try {
-            $driver = delivery_driver::find($request->driver_id);
+            $driver = User::find($request->driver_id);
             if (!$driver) {
                 return response()->json([
                     'status_code' => 404,
@@ -129,23 +149,41 @@ class DeliveryController extends Controller
                 if (!$order) {
                     continue;
                 }
-                $order->makeHidden('delivery_charge', 'order_type', 'total', 'payment_id', 'table_no', 'location', 'longitude', 'latitude', 'house_no', 'area', 'options_to_reach', 'coupon_id', 'user_id', 'paid', 'payment_method');
+                $order->makeHidden('delivery_charge', 'order_type', 'total', 'payment_id', 'table_no', 'longitude', 'latitude', 'house_no', 'area', 'options_to_reach', 'coupon_id', 'user_id', 'paid', 'payment_method');
                 $order->delivery_request_status = $req->status;
                 $user = User::select('_id', 'name')->where('_id', $order->user_id)->first();
                 if (!$user) {
                     continue;
                 }
-                $user->location = $order->location;
                 $user->latitude = $order->latitude;
                 $user->longitude = $order->longitude;
                 $user->house_no = $order->house_no;
                 $user->area = $order->area;
                 $user->options_to_reach = $order->options_to_reach;
-                $restaurant = admin::select('_id', 'phoneno', 'location', 'latitude', 'longitude')->first();
-                if (!$restaurant) {
+                // $restaurant = admin::select('_id', 'phoneno', 'latitude', 'longitude')->first();
+                // if (!$restaurant) {
+                //     continue;
+                // }
+                // $restaurant->name = "Crispello";
+                $adminUser = User::where('user_role', 'admin')->first();
+                if (!$adminUser) {
                     continue;
                 }
-                $restaurant->name = "Crispello";
+
+                $adminAddress = address::where('user_id', $adminUser->_id)->first(['latitude', 'longitude', 'area']);
+                if (!$adminAddress) {
+                    continue;
+                }
+
+                $restaurant = (object) [
+                    '_id' => $adminUser->_id,
+                    'phoneno' => $adminUser->phoneno ?? null,
+                    'email' => $adminUser->email ?? null,
+                    'latitude' => $adminAddress->latitude ?? null,
+                    'longitude' => $adminAddress->longitude ?? null,
+                    'area' => $adminAddress->area ?? null,
+                    'name' => 'Crispello'
+                ];
                 if ($user->latitude && $user->longitude && $restaurant->latitude && $restaurant->longitude) {
                     $distance = $this->calculateDistanceWithDuration(['latitude' => $restaurant->latitude, 'longitude' => $restaurant->longitude], ['latitude' => $user->latitude, 'longitude' => $user->longitude]);
                     $order->distance = $distance['distance']['text'];
@@ -186,7 +224,7 @@ class DeliveryController extends Controller
             ], 400);
         }
         try {
-            $driver = delivery_driver::find($request->driver_id);
+            $driver = User::find($request->driver_id);
             if (!$driver) {
                 return response()->json([
                     'status_code' => 404,
@@ -207,12 +245,12 @@ class DeliveryController extends Controller
                     'message' => 'There is no request made to this driver for this order'
                 ], 404);
             }
-            $order->makeHidden('user_id', 'delivery_charge', 'order_type', 'payment_id', 'table_no', 'location', 'longitude', 'latitude', 'house_no', 'area', 'options_to_reach', 'coupon_id');
+            $order->makeHidden('user_id', 'delivery_charge', 'order_type', 'payment_id', 'table_no', 'longitude', 'latitude', 'house_no', 'area', 'options_to_reach', 'coupon_id');
             if ($order->delivery_charge) {
                 $order->total += $order->delivery_charge;
             }
             $order->delivery_status = $deliveryRequest->status;
-            $order->products = order_product::select('_id', 'name','arabic_name', 'size','arabic_size', 'quantity')->where('order_id', $order->_id)->get();
+            $order->products = order_product::select('_id', 'name', 'arabic_name', 'size', 'arabic_size', 'quantity')->where('order_id', $order->_id)->get();
             $order->products = $order->products->map(function ($product) {
                 $customizations = order_customization::where('order_product_id', $product->_id)->get();
                 $product->customization = $customizations->isEmpty() ? null : $customizations;
@@ -227,18 +265,42 @@ class DeliveryController extends Controller
             }
             $user->latitude = $order->latitude;
             $user->longitude = $order->longitude;
-            $user->location = $order->location;
             $user->house_no = $order->house_no;
             $user->area = $order->area;
             $user->options_to_reach = $order->options_to_reach;
-            $restaurant = admin::select('_id', 'phoneno', 'email', 'location', 'latitude', 'longitude')->first();
-            if (!$restaurant) {
+            // $restaurant = admin::select('_id', 'phoneno', 'email', 'latitude', 'longitude')->first();
+            // if (!$restaurant) {
+            //     return response()->json([
+            //         'status_code' => 404,
+            //         'message' => 'Restaurant not found'
+            //     ], 404);
+            // }
+            // $restaurant->name = "Crispello";
+            $adminUser = User::where('user_role', 'admin')->first();
+            if (!$adminUser) {
                 return response()->json([
                     'status_code' => 404,
-                    'message' => 'Restaurant not found'
+                    'messsage' => 'Restaurant not found'
                 ], 404);
             }
-            $restaurant->name = "Crispello";
+
+            $adminAddress = address::where('user_id', $adminUser->_id)->first(['latitude', 'longitude', 'area']);
+            if (!$adminAddress) {
+                return response()->json([
+                    'status_code' => 404,
+                    'messsage' => 'Restaurant not found'
+                ], 404);
+            }
+
+            $restaurant = (object) [
+                '_id' => $adminUser->_id,
+                'phoneno' => $adminUser->phoneno ?? null,
+                'email' => $adminUser->email ?? null,
+                'latitude' => $adminAddress->latitude ?? null,
+                'longitude' => $adminAddress->longitude ?? null,
+                'area' => $adminAddress->area ?? null,
+                'name' => 'Crispello'
+            ];
             $data = [
                 'order' => $order,
                 'user' => $user,
@@ -275,7 +337,7 @@ class DeliveryController extends Controller
         }
         DB::beginTransaction();
         try {
-            $driver = delivery_driver::find($request->driver_id);
+            $driver = User::find($request->driver_id);
             if (!$driver) {
                 return response()->json([
                     'status_code' => 404,
@@ -309,7 +371,7 @@ class DeliveryController extends Controller
                     // $other_driver->status = 'cancelled';
                     delivery_request::where('order_id', $order->_id)->where('driver_id', $other_driver->driver_id)->update(['status' => 'cancelled']);
                     // $other_driver->save();
-                    $fcm_tokens = delivery_fcm_token::whereNotNull('token')->where('driver_id', $other_driver->driver_id)->pluck('token')->all();
+                    $fcm_tokens = user_fcm_token::whereNotNull('token')->where('driver_id', $other_driver->driver_id)->pluck('token')->all();
                     if (!empty($fcm_tokens)) {
                         $validTokens = $this->validateTokens($fcm_tokens, 0, 0, 1);
                         if (!empty($validTokens)) {
@@ -328,20 +390,23 @@ class DeliveryController extends Controller
                     }
                 }
                 DB::commit();
-                $admin_tokens = admin_fcm_token::whereNotNull('token')->pluck('token')->all();
-                if (!empty($admin_tokens)) {
-                    $validTokens = $this->validateTokens($admin_tokens, 1, 0, 0);
-                    if (!empty($validTokens)) {
-                        $message = $driver->name ? $driver->name . ' has accepted the delivery request for order #' . $order->_id . '.' : 'Delivery Boy has accepted the delivery request for order #' . $order->_id . '.';
-                        $this->sendDeliveryNotification(
-                            $validTokens,
-                            'Delivery Request Accepted',
-                            $message,
-                            'order',
-                            $order->_id,
-                            null,
-                            0
-                        );
+                $admin = User::where('user_role', 'admin')->first();
+                if ($admin) {
+                    $admin_tokens = user_fcm_token::where('user_id', $admin->_id)->whereNotNull('token')->pluck('token')->all();
+                    if (!empty($admin_tokens)) {
+                        $validTokens = $this->validateTokens($admin_tokens, 1, 0, 0);
+                        if (!empty($validTokens)) {
+                            $message = $driver->name ? $driver->name . ' has accepted the delivery request for order #' . $order->_id . '.' : 'Delivery Boy has accepted the delivery request for order #' . $order->_id . '.';
+                            $this->sendDeliveryNotification(
+                                $validTokens,
+                                'Delivery Request Accepted',
+                                $message,
+                                'order',
+                                $order->_id,
+                                null,
+                                0
+                            );
+                        }
                     }
                 }
 
@@ -358,20 +423,23 @@ class DeliveryController extends Controller
                 }
                 delivery_request::where('order_id', $order->_id)->where('driver_id', $driver->_id)->update(['status' => 'rejected']);
                 DB::commit();
-                $admin_tokens = admin_fcm_token::whereNotNull('token')->pluck('token')->all();
-                if (!empty($admin_tokens)) {
-                    $validTokens = $this->validateTokens($admin_tokens, 1, 0, 0);
-                    if (!empty($validTokens)) {
-                        $message = $driver->name ? $driver->name . ' has rejected the delivery request for order #' . $order->_id . '.' : 'Delivery Boy has rejected the delivery request for order #' . $order->_id . '.';
-                        $this->sendDeliveryNotification(
-                            $validTokens,
-                            'Delivery Request Rejected',
-                            $message,
-                            'order',
-                            $order->_id,
-                            null,
-                            0
-                        );
+                $admin = User::where('user_role', 'admin')->first();
+                if ($admin) {
+                    $admin_tokens = user_fcm_token::where('user_id', $admin->_id)->whereNotNull('token')->pluck('token')->all();
+                    if (!empty($admin_tokens)) {
+                        $validTokens = $this->validateTokens($admin_tokens, 1, 0, 0);
+                        if (!empty($validTokens)) {
+                            $message = $driver->name ? $driver->name . ' has rejected the delivery request for order #' . $order->_id . '.' : 'Delivery Boy has rejected the delivery request for order #' . $order->_id . '.';
+                            $this->sendDeliveryNotification(
+                                $validTokens,
+                                'Delivery Request Rejected',
+                                $message,
+                                'order',
+                                $order->_id,
+                                null,
+                                0
+                            );
+                        }
                     }
                 }
                 return response()->json([

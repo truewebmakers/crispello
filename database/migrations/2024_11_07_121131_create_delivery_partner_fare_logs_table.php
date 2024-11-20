@@ -14,7 +14,7 @@ return new class extends Migration
         Schema::create('delivery_partner_fare_logs', function (Blueprint $table) {
             $table->id();
             $table->unsignedBigInteger('delivery_partner_id')->nullable();
-            $table->foreign('delivery_partner_id')->references('_id')->on('delivery_drivers');
+            $table->foreign('delivery_partner_id')->references('_id')->on('users');
             $table->unsignedBigInteger('order_id')->nullable();
             $table->foreign('order_id')->references('_id')->on('orders');
             $table->string('pickup_lat',191)->nullable();

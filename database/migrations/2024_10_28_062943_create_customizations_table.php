@@ -19,7 +19,7 @@ return new class extends Migration
             $table->boolean('is_available')->default(0)->comment('0:not available,1:available')->nullable();
             $table->enum('type', ['Toppings'])->nullable();
             $table->unsignedBigInteger('admin_id')->nullable();
-            $table->foreign('admin_id')->references('_id')->on('admins');
+            $table->foreign('admin_id')->references('_id')->on('users');
             $table->timestamps();
         });
     }

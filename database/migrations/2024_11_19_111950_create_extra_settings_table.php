@@ -11,18 +11,13 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('admins', function (Blueprint $table) {
+        Schema::create('extra_settings', function (Blueprint $table) {
             $table->id('_id');
-            $table->tinyText('username')->nullable();
-            $table->tinyText('password')->nullable();
-            $table->mediumText('name')->nullable();
-            $table->tinyText('phoneno')->nullable();
-            $table->tinyText('email')->nullable();
-            $table->tinyText('latitude')->nullable();
-            $table->tinyText('longitude')->nullable();
             $table->tinyText('delivery_coverage_km')->nullable();
             $table->tinyText('delivery_charge')->nullable();
             $table->tinyText('free_upto_km')->nullable();
+            $table->unsignedBigInteger('added_by')->nullable();
+            $table->foreign('added_by')->references('_id')->on('users');
             $table->timestamps();
         });
     }
@@ -32,6 +27,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('admins');
+        Schema::dropIfExists('extra_settings');
     }
 };

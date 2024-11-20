@@ -82,11 +82,11 @@ return [
         ],
        'admins' => [
            'driver' => 'eloquent',
-           'model' => App\Models\admin::class,
+           'model' => App\Models\User::class,
        ],
        'delivery_drivers' => [
            'driver' => 'eloquent',
-           'model' => App\Models\delivery_driver::class,
+           'model' => App\Models\User::class,
        ],
         // 'users' => [
         //     'driver' => 'database',

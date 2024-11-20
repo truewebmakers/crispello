@@ -118,15 +118,15 @@ trait FCMNotificationTrait
             $tokensToDelete = array_merge($invalidTokens, $unknownTokens);
             if (!empty($tokensToDelete)) {
                 DB::beginTransaction();
-                if ($admin) {
-                    admin_fcm_token::whereIn('token', $tokensToDelete)->update(['token' => null]);
-                }
-                if ($customer) {
+                // if ($admin) {
+                //     user_fcm_token::whereIn('token', $tokensToDelete)->update(['token' => null]);
+                // }
+                // if ($customer) {
+                //     user_fcm_token::whereIn('token', $tokensToDelete)->update(['token' => null]);
+                // }
+                // if ($delivery) {
                     user_fcm_token::whereIn('token', $tokensToDelete)->update(['token' => null]);
-                }
-                if ($delivery) {
-                    delivery_fcm_token::whereIn('token', $tokensToDelete)->update(['token' => null]);
-                }
+                // }
                 DB::commit();
             }
             return $validTokens;

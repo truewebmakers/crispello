@@ -115,7 +115,7 @@ class DeliveryPartnerFareSettingController extends Controller
     {
         // Validate the incoming request
         $validator = Validator::make($request->all(), [
-            'delivery_partner_id' => 'nullable|exists:delivery_drivers,_id',
+            'delivery_partner_id' => 'nullable|exists:users,_id',
             'order_id' => 'nullable|exists:orders,_id',
             'pickup_lat' => 'nullable|string|max:191',
             'pickup_long' => 'nullable|string|max:191',

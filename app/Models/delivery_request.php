@@ -25,6 +25,6 @@ class delivery_request extends Model
 
     public function driver()
     {
-        return $this->belongsTo(delivery_driver::class, 'driver_id');
+        return $this->belongsTo(User::class, 'driver_id');
     }
 }

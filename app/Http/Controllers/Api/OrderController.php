@@ -133,7 +133,6 @@ class OrderController extends Controller
             } else if ($cart->order_type === 'Delivery') {
                 if ($cart->address_id) {
                     $address = address::find($cart->address_id);
-                    $order->location = $address->location;
                     $order->longitude = $address->longitude;
                     $order->latitude = $address->latitude;
                     $order->house_no = $address->house_no;
@@ -238,21 +237,24 @@ class OrderController extends Controller
             DB::commit();
 
             //send notification to admin and customer
-            $fcm_tokens_admin = admin_fcm_token::whereNotNull('token')->pluck('token')->all();
-            if (!empty($fcm_tokens_admin)) {
-                $validTokens = $this->validateTokens($fcm_tokens_admin, 1, 0, 0);
-                if (!empty($validTokens)) {
-                    $this->sendNotification(
-                        $validTokens,
-                        'New Order Received!',
-                        "Order ID: " . $order->_id,
-                        null,
-                        'new_order',
-                        null,
-                        null,
-                        1,
-                        null
-                    );
+            $admin = User::where('user_role', 'admin')->first();
+            if ($admin) {
+                $fcm_tokens_admin = user_fcm_token::where('user_id', $admin->_id)->whereNotNull('token')->pluck('token')->all();
+                if (!empty($fcm_tokens_admin)) {
+                    $validTokens = $this->validateTokens($fcm_tokens_admin, 1, 0, 0);
+                    if (!empty($validTokens)) {
+                        $this->sendNotification(
+                            $validTokens,
+                            'New Order Received!',
+                            "Order ID: " . $order->_id,
+                            null,
+                            'new_order',
+                            null,
+                            null,
+                            1,
+                            null
+                        );
+                    }
                 }
             }
             $fcm_tokens_customer = user_fcm_token::whereNotNull('token')->where('user_id', $order->user_id)->pluck('token')->all();
@@ -273,38 +275,43 @@ class OrderController extends Controller
                 }
             }
             if ($request->order_type === 'Delivery') {
-                $restaurant_location = admin::select('_id', 'latitude', 'longitude')->first();
-                if ($restaurant_location->latitude && $restaurant_location->longitude) {
-                    $drivers = $this->getDriversList($order->_id, $restaurant_location->latitude, $restaurant_location->longitude);
-                    if (!empty($drivers)) {
-                        $drivers = $drivers->toArray();
-                        // Get the first 4 drivers
-                        $firstFourDrivers = array_slice($drivers, 0, 4);
-                        $existingRequest = delivery_request::where('order_id', $order->_id)->where('status', 'accepted')->first();
-                        if (!$existingRequest) {
-                            foreach ($firstFourDrivers as $driver) {
-                                if ($driver['online'] === 1) {
-                                    // if ($driver->available === 1 && $driver->online === 1) {
-                                    $delivery_request = new delivery_request();
-                                    $delivery_request->order_id = $order->_id;
-                                    $delivery_request->driver_id = $driver['_id'];
-                                    $delivery_request->status = 'pending';
-                                    $delivery_request->save();
-                                    $fcm_tokens = delivery_fcm_token::whereNotNull('token')->where('driver_id', $driver['_id'])->pluck('token')->all();
-                                    if (!empty($fcm_tokens)) {
-                                        $validTokens = $this->validateTokens($fcm_tokens, 0, 0, 1);
-                                        if (!empty($validTokens)) {
-                                            $title = 'New Delivery Assigned!';
-                                            $message = 'A new delivery order is ready. Please open the app to view the details and start delivering.';
-                                            $this->sendDeliveryNotification(
-                                                $fcm_tokens,
-                                                $title,
-                                                $message,
-                                                'new_delivery',
-                                                $order->_id,
-                                                $driver['_id'],
-                                                0
-                                            );
+                $admin = User::where('user_role', 'admin')->first();
+                $restaurant_location = address::where('user_id', $admin->_id)->first();
+
+                // $restaurant_location = admin::select('_id', 'latitude', 'longitude')->first();
+                if ($restaurant_location) {
+                    if ($restaurant_location->latitude && $restaurant_location->longitude) {
+                        $drivers = $this->getDriversList($order->_id, $restaurant_location->latitude, $restaurant_location->longitude);
+                        if (!empty($drivers)) {
+                            $drivers = $drivers->toArray();
+                            // Get the first 4 drivers
+                            $firstFourDrivers = array_slice($drivers, 0, 4);
+                            $existingRequest = delivery_request::where('order_id', $order->_id)->where('status', 'accepted')->first();
+                            if (!$existingRequest) {
+                                foreach ($firstFourDrivers as $driver) {
+                                    if ($driver['online'] === 1) {
+                                        // if ($driver->available === 1 && $driver->online === 1) {
+                                        $delivery_request = new delivery_request();
+                                        $delivery_request->order_id = $order->_id;
+                                        $delivery_request->driver_id = $driver['_id'];
+                                        $delivery_request->status = 'pending';
+                                        $delivery_request->save();
+                                        $fcm_tokens = user_fcm_token::whereNotNull('token')->where('driver_id', $driver['_id'])->pluck('token')->all();
+                                        if (!empty($fcm_tokens)) {
+                                            $validTokens = $this->validateTokens($fcm_tokens, 0, 0, 1);
+                                            if (!empty($validTokens)) {
+                                                $title = 'New Delivery Assigned!';
+                                                $message = 'A new delivery order is ready. Please open the app to view the details and start delivering.';
+                                                $this->sendDeliveryNotification(
+                                                    $fcm_tokens,
+                                                    $title,
+                                                    $message,
+                                                    'new_delivery',
+                                                    $order->_id,
+                                                    $driver['_id'],
+                                                    0
+                                                );
+                                            }
                                         }
                                     }
                                 }
@@ -370,7 +377,24 @@ class OrderController extends Controller
     }
     public function getDriversList($order_id, $latitude, $longitude)
     {
-        $drivers = delivery_driver::where('online', 1)->whereNotNull('latitude')->whereNotNull('longitude')->get();
+         // Retrieve drivers with valid addresses
+         $drivers = User::where('online', 1)->where('user_role','delivery_partner')
+         ->whereHas('deliverAddress', function ($query) {
+             $query->whereNotNull('latitude')
+                 ->whereNotNull('longitude');
+         })
+         ->with('deliverAddress')
+         ->get() ->map(function ($driver) {
+             // Extract latitude and longitude from deliverAddress
+             $driver->latitude = $driver->deliverAddress->latitude ?? null;
+             $driver->longitude = $driver->deliverAddress->longitude ?? null;
+     
+             // Optionally, remove deliverAddress if you don't want to include it in the response
+             unset($driver->deliverAddress);
+     
+             return $driver;
+         });
+        // $drivers = delivery_driver::where('online', 1)->whereNotNull('latitude')->whereNotNull('longitude')->get();
         // $drivers = delivery_driver::where('available', 1)->where('online', 1)->whereNotNull('latitude')->whereNotNull('longitude')->get();
         if ($drivers->isEmpty()) {
             return [];
@@ -470,7 +494,7 @@ class OrderController extends Controller
             $order->save();
             if ($request->has('admin') && $request->admin === 0 && $order->order_status === 'delivered') {
                 if ($order->driver_id) {
-                    delivery_driver::where('_id', $order->driver_id)->update(['available' => 1]);
+                    User::where('_id', $order->driver_id)->update(['available' => 1]);
                 }
             }
             DB::commit();
@@ -513,7 +537,8 @@ class OrderController extends Controller
                 }
             }
             if ($request->has('admin') && $request->admin === 0 && $order->order_status === 'delivered') {
-                $fcm_tokens = admin_fcm_token::whereNotNull('token')->pluck('token')->all();
+                $admin=User::where('user_role','admin')->first();
+                $fcm_tokens = user_fcm_token::where('user_id',$admin->_id)->whereNotNull('token')->pluck('token')->all();
                 if (!empty($fcm_tokens)) {
                     $validTokens = $this->validateTokens($fcm_tokens, 1, 0, 0);
                     if (!empty($validTokens)) {
@@ -606,25 +631,24 @@ class OrderController extends Controller
                         $order->user_phoneno = $user->phoneno;
                     }
                     if ($order->order_type === 'Dine In') {
-                        $order->makeHidden(['longitude', 'latitude', 'location', 'house_no', 'area', 'options_to_reach', 'coupon_id']);
+                        $order->makeHidden(['longitude', 'latitude','house_no', 'area', 'options_to_reach', 'coupon_id']);
                     } else if ($order->order_type === 'Delivery') {
                         $address = (object)[
                             'longitude' => $order->longitude,
                             'latitude' => $order->latitude,
-                            'location' => $order->location,
                             'house_no' => $order->house_no,
                             'area' => $order->area,
                             'options_to_reach' => $order->options_to_reach,
                         ];
                         $order->address = $address;
-                        $order->makeHidden(['table_no', 'longitude', 'latitude', 'location', 'house_no', 'area', 'options_to_reach', 'coupon_id']);
+                        $order->makeHidden(['table_no', 'longitude', 'latitude', 'house_no', 'area', 'options_to_reach', 'coupon_id']);
                     } else if ($order->order_type === 'Pickup') {
-                        $order->makeHidden(['longitude', 'latitude', 'location', 'house_no', 'area', 'options_to_reach', 'table_no', 'coupon_id']);
+                        $order->makeHidden(['longitude', 'latitude', 'house_no', 'area', 'options_to_reach', 'table_no', 'coupon_id']);
                     } else {
                         $order->makeHidden('coupon_id');
                     }
                     if ($order->driver_id) {
-                        $driver = delivery_driver::find($order->driver_id);
+                        $driver = User::find($order->driver_id);
                         $order->delivery_person = $driver;
                     } else {
                         $order->delivery_person = null;
@@ -683,9 +707,9 @@ class OrderController extends Controller
                     // } else {
                     //     $order->makeHidden('coupon_id');
                     // }
-                    $order->makeHidden(['longitude', 'latitude', 'location', 'house_no', 'area', 'options_to_reach', 'coupon_id', 'table_no', 'user_id']);
+                    $order->makeHidden(['longitude', 'latitude','house_no', 'area', 'options_to_reach', 'coupon_id', 'table_no', 'user_id']);
                     if ($order->driver_id) {
-                        $driver = delivery_driver::find($order->driver_id);
+                        $driver = User::find($order->driver_id);
                         $order->delivery_person = $driver;
                     } else {
                         $order->delivery_person = null;
@@ -816,7 +840,7 @@ class OrderController extends Controller
                 ], 200);
             }
 
-            $driver = delivery_driver::find($request->driver_id);
+            $driver = User::find($request->driver_id);
             if (!$driver) {
                 return response()->json([
                     'status_code' => 404,
@@ -847,7 +871,7 @@ class OrderController extends Controller
             $delivery_request->save();
             DB::commit();
 
-            $fcm_tokens = delivery_fcm_token::whereNotNull('token')->where('driver_id', $request->driver_id)->pluck('token')->all();
+            $fcm_tokens = user_fcm_token::whereNotNull('token')->where('driver_id', $request->driver_id)->pluck('token')->all();
             if (!empty($fcm_tokens)) {
                 $validTokens = $this->validateTokens($fcm_tokens, 0, 0, 1);
                 if (!empty($validTokens)) {
@@ -902,7 +926,7 @@ class OrderController extends Controller
                 ], 404);
             }
 
-            $driver = delivery_driver::find($request->driver_id);
+            $driver = User::find($request->driver_id);
             if (!$driver) {
                 return response()->json([
                     'status_code' => 404,
@@ -928,7 +952,7 @@ class OrderController extends Controller
             delivery_request::where('order_id', $order->_id)->where('driver_id', $driver->_id)->update(['status' => 'cancelled']);
             DB::commit();
 
-            $fcm_tokens = delivery_fcm_token::whereNotNull('token')->where('driver_id', $request->driver_id)->pluck('token')->all();
+            $fcm_tokens = user_fcm_token::whereNotNull('token')->where('driver_id', $request->driver_id)->pluck('token')->all();
             if (!empty($fcm_tokens)) {
                 $validTokens = $this->validateTokens($fcm_tokens, 0, 0, 1);
                 if (!empty($validTokens)) {

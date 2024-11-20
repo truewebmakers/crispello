@@ -7,6 +7,7 @@ use App\Models\admin;
 use App\Models\cart_product;
 use App\Models\customization;
 use App\Models\product;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
@@ -33,7 +34,7 @@ class CustomizationController extends Controller
         }
         DB::beginTransaction();
         try {
-            $admin = admin::findOrFail($request->admin_id);
+            $admin = User::findOrFail($request->admin_id);
             $name = trim($request->name);
             $existingData = customization::whereRaw('LOWER(TRIM(name)) = ?', [strtolower($name)])->where('admin_id', $admin->_id)->first();
 
@@ -202,7 +203,7 @@ class CustomizationController extends Controller
             ], 400);
         }
         try {
-            $admin = admin::findOrFail($request->admin_id);
+            $admin = User::findOrFail($request->admin_id);
             $customization = customization::where('admin_id', $admin->_id)->get();
 
             return response()->json([

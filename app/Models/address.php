@@ -17,7 +17,6 @@ class address extends Model
         'house_no',
         'area',
         'options_to_reach',
-        'location',
         'latitude',
         'longitude',
         'user_id',

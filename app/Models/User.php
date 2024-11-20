@@ -21,6 +21,8 @@ class User extends Authenticatable
      * @var array<int, string>
      */
     protected $fillable = [
+        'username',
+        'password',
         'name',
         'email',
         'phoneno',
@@ -28,7 +30,8 @@ class User extends Authenticatable
         'image',
         'aniversary_date',
         'gender',
-        'disable'
+        'disable',
+        'user_role'
     ];
 
     public function getAuthIdentifierName()
@@ -38,35 +41,46 @@ class User extends Authenticatable
 
     public function addresses()
     {
-        return $this->hasMany(address::class, 'user_id');
+        return $this->hasMany(address::class, 'user_id', '_id'); // 'user_id' is the foreign key, '_id' is the local key
     }
-
+    
     public function carts()
     {
-        return $this->hasMany(cart::class, 'user_id');
+        return $this->hasMany(cart::class, 'user_id', '_id');
     }
-
+    
     public function orders()
     {
-        return $this->hasMany(order::class, 'user_id');
+        return $this->hasMany(order::class, 'user_id', '_id');
     }
-
+    
     public function feedbacks()
     {
-        return $this->hasMany(feedback::class, 'user_id');
+        return $this->hasMany(feedback::class, 'user_id', '_id');
     }
-
+    
     public function fcmTokens()
     {
-        return $this->hasMany(user_fcm_token::class, 'user_id');
+        return $this->hasMany(user_fcm_token::class, 'user_id', '_id');
     }
-
+    
     public function notifications()
     {
-        return $this->hasMany(notification::class, 'user_id');
+        return $this->hasMany(notification::class, 'user_id', '_id');
     }
+    
     public function referralcode()
     {
-        return $this->hasOne(ReferralCode::class,'user_id');
+        return $this->hasOne(referralcode::class, 'user_id', '_id');
     }
-}
+    
+    public function extraSettings()
+    {
+        return $this->hasMany(extra_setting::class, 'added_by', '_id');
+    }
+    
+    public function deliverAddress()
+    {
+        return $this->hasOne(address::class, 'user_id', '_id')->orderBy('_id', 'asc');
+    }
+}    

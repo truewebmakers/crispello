@@ -120,7 +120,8 @@ Route::prefix('user')->middleware(['auth:user', 'scope:user'])->group(function (
 
 //admin
 Route::post('admin/login', [AdminController::class, 'adminLogin']);
-Route::post('admin/register', [AdminController::class, 'adminRegistration']);
+Route::post('admin/password/change', [AdminController::class, 'changePassword']);
+// Route::post('admin/register', [AdminController::class, 'adminRegistration']);
 Route::post('admin/logout', [AdminController::class, 'adminLogout']);
 
 Route::prefix('admin')->middleware(['auth:admin', 'scope:admin'])->group(function () {
