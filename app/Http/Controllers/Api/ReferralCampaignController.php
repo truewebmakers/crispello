@@ -228,7 +228,7 @@ class ReferralCampaignController extends Controller
         ]);
         $userId = $request->input('user_id');
         $query = ReferralLog::where('point_credit_user_id', $userId);
-
+        $logs = $query->get();
 
         $referralLogsCredit = $query->where('status', 'credit')->get();
         $referralLogsSpend = $query->where('status', 'spent')->get();
@@ -237,13 +237,13 @@ class ReferralCampaignController extends Controller
         $totalspent = $referralLogsSpend->sum('points');
         $totalPoints =  $totalcredit - $totalspent;
 
-        $logs = $query->get();
+
 
         return response()->json([
             'status_code' => 200,
             'message' => 'Referral Log get successfully',
             'data' => $logs,
-            'total_points' =>$totalPoints
+            'total_points' => $totalPoints
         ], 200);
 
     }
