@@ -15,6 +15,9 @@ return new class extends Migration
 
             $table->unsignedBigInteger('point_credit_user_id')->nullable();
             $table->foreign('point_credit_user_id')->references('_id')->on('users');
+
+            $table->float('amount')->default(0);
+            $table->float('currency')->nullable();
         });
     }
 
@@ -26,6 +29,8 @@ return new class extends Migration
         Schema::table('referral_logs', function (Blueprint $table) {
             //
             $table->dropColumn('point_credit_user_id');
+            $table->dropColumn('amount');
+            $table->dropColumn('currency');
         });
     }
 };
