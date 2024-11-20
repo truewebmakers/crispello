@@ -195,7 +195,7 @@ class ReferralCampaignController extends Controller
     public function referralLog(Request $request)
     {
         $request->validate([
-            'referral_code_id ' => 'required',
+            'referral_code_id' => 'required',
             'point_credit_user_id' => 'required',
             'referrer_user_id' => 'required',
             'referred_user_id' => 'required',
