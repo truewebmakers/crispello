@@ -125,8 +125,8 @@ class ReferralCampaignController extends Controller
 
     public function delete($id)
     {
-        ReferralCampaign::find($id)->delete();
         ReferralCode::where(['referral_campaign_id' => $id])->delete();
+        ReferralCampaign::find($id)->delete();
         return response()->json([
             'status_code' => 200,
             'message' => 'Referral Code deleted successfully',
