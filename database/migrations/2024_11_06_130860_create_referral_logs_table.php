@@ -15,18 +15,15 @@ return new class extends Migration
             $table->id();
             $table->unsignedBigInteger('referral_code_id')->nullable();
             $table->foreign('referral_code_id')->references('id')->on('referral_codes');
-
-            $table->unsignedBigInteger('referrer_user_id')->nullable();
+            $table->unsignedBigInteger('referrer_user_id')->nullable(); //  Who refer you
             $table->foreign('referrer_user_id')->references('_id')->on('users');
 
-            $table->unsignedBigInteger('referred_user_id')->nullable();
+
+            $table->unsignedBigInteger('referred_user_id')->nullable(); // who install the application
             $table->foreign('referred_user_id')->references('_id')->on('users');
 
             $table->integer('points')->nullable();
-
-            $table->enum('status', ['credit', 'inactive'])->default('credit');
-
-
+            $table->enum('status', ['credit', 'inactive','spent'])->default('credit');
             $table->timestamps();
         });
     }

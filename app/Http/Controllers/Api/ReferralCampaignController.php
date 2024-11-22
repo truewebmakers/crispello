@@ -192,6 +192,18 @@ class ReferralCampaignController extends Controller
         ], 200);
     }
 
+    public function referralLogUpdateStauts(Request $request,$id)
+    {
+        $request->validate([
+            'status' => 'required'
+        ]);
+        ReferralLog::find($id)->update(['status' => $request->input('status')]);
+        return response()->json([
+            'status_code' => 200,
+            'message' => 'Referral Log update successfully'
+        ], 200);
+
+    }
     public function referralLog(Request $request)
     {
         $request->validate([
@@ -239,6 +251,8 @@ class ReferralCampaignController extends Controller
 
         $totalcredit = $referralLogsCredit->sum('points');
         $totalspent = $referralLogsSpend->sum('points');
+
+        $totalAmount = $referralLogsCredit->sum('amount');
         $totalPoints =  $totalcredit - $totalspent;
 
 
@@ -247,7 +261,8 @@ class ReferralCampaignController extends Controller
             'status_code' => 200,
             'message' => 'Referral Log get successfully',
             'data' => $logs,
-            'total_points' => $totalPoints
+            'total_points' => $totalPoints,
+            'total_amount' => $totalAmount
         ], 200);
 
     }

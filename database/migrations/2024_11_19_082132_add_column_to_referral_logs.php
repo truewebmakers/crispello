@@ -15,7 +15,6 @@ return new class extends Migration
 
             $table->unsignedBigInteger('point_credit_user_id')->nullable();
             $table->foreign('point_credit_user_id')->references('_id')->on('users');
-
             $table->float('amount')->default(0);
             $table->float('currency')->nullable();
         });
