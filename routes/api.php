@@ -109,6 +109,8 @@ Route::prefix('user')->middleware(['auth:user', 'scope:user'])->group(function (
     Route::post('referral/create/code', [ReferralCampaignController::class, 'craeteUserCode']);
 
     Route::get('referral/get/withoutcode', [ReferralCampaignController::class, 'fetchDataWithOutCode']);
+    Route::get('referral/get/withid', [ReferralCampaignController::class, 'fetchDataWithId']);
+    Route::post('referral/referreduser/log/get', [ReferralCampaignController::class, 'referralgetOfReferredUser']);
 
     // customer Wallet
     Route::post('customer/wallet/store', [ReferralCampaignController::class, 'CustomerWallet']);

@@ -4,14 +4,10 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\address;
-use App\Models\admin;
-use App\Models\admin_fcm_token;
 use App\Models\cart;
 use App\Models\cart_product;
 use App\Models\combo;
 use App\Models\customization;
-use App\Models\delivery_driver;
-use App\Models\delivery_fcm_token;
 use App\Models\delivery_request;
 use App\Models\notification;
 use App\Models\order;
@@ -118,6 +114,8 @@ class OrderController extends Controller
             $order->order_status = 'pending';
             $order->delivery_charge = $request->delivery_charge;
             $order->order_date = Carbon::now()->toIso8601String();
+            $order->used_loyalty_points=$request->filled('used_loyalty_points')?$request->used_loyalty_points:0;
+            $order->wallet_amount=$request->filled('wallet_amount')?$request->wallet_amount:0;
             if ($cart->payment_method === 1) {
                 $order->payment_id = $request->payment_id;
             }
@@ -362,9 +360,17 @@ class OrderController extends Controller
             // if ($message != '') {
             //     $this->sendWhatsappMessage($user->phoneno, $message);
             // }
+            // Calculate total order amount for the user
+            $orders = order::where('user_id', $order->user_id)->pluck('_id');
+            $orderProducts = order_product::whereIn('order_id', $orders)->get();
+
+            $totalOrderAmount = $orderProducts->reduce(function ($carry, $orderProduct) {
+                return $carry + ($orderProduct->price * $orderProduct->quantity);
+            }, 0);
             return response()->json([
                 'status_code' => 200,
                 'order_id' => $order->_id,
+                'total_order_amount' => $totalOrderAmount,
                 'message' => 'Order placed successfully'
             ], 200);
         } catch (\Exception $e) {
