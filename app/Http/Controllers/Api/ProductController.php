@@ -406,6 +406,10 @@ class ProductController extends Controller
                     ]);
                 }
             }
+            else
+            {
+                RelatedProducts::where('product_id', $productId)->delete();
+            }
             DB::commit();
             return response()->json([
                 'status_code' => 200,
