@@ -119,10 +119,6 @@ class AdminController extends Controller
                     'message' => 'Invalid password',
                 ], 200);
             }
-            return response()->json([
-                'status_code' => 200,
-                'message' => 'Logged in successfully'
-            ], 200);
         } catch (\Exception $e) {
             DB::rollBack();
             return response()->json([

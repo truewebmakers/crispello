@@ -71,7 +71,7 @@ class User extends Authenticatable
     
     public function referralcode()
     {
-        return $this->hasOne(referralcode::class, 'user_id', '_id');
+        return $this->hasOne(ReferralCode::class, 'user_id', '_id');
     }
     
     public function extraSettings()
