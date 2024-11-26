@@ -162,17 +162,17 @@ class UserController extends Controller
             //     }
             // }
             
-            if ($request->has('email')) {
-                $existingUser=User::where('email',$request->email)->where('_id','!=',$user->_id)->first();
-                if($existingUser)
-                {
-                    return response()->json([
-                        'status_code' => 400,
-                        'message' => 'You can not use this email address'
-                    ], 400);
-                }
-                $user->email = $request->email;
-            }
+            // if ($request->has('email')) {
+            //     $existingUser=User::where('email',$request->email)->where('_id','!=',$user->_id)->first();
+            //     if($existingUser)
+            //     {
+            //         return response()->json([
+            //             'status_code' => 400,
+            //             'message' => 'You can not use this email address'
+            //         ], 400);
+            //     }
+            //     $user->email = $request->email;
+            // }
             if ($request->has('dob')) {
                 $user->dob = $request->dob;
             }
@@ -268,7 +268,7 @@ class UserController extends Controller
     public function getAllUsers()
     {
         try {
-            $users = User::where('disable', 0)->select('_id', 'name', 'phoneno')->get()->each(function ($user) {
+            $users = User::where('disable', 0)->select('_id', 'name', 'phoneno')->where('user_role','user')->get()->each(function ($user) {
                 $addressCount = address::where('user_id', $user->_id)->count();
                 if ($addressCount <= 0) {
                     $address = null;
@@ -300,7 +300,8 @@ class UserController extends Controller
     public function userLogout(Request $request)
     {
         $validator = Validator::make($request->all(), [
-            'device_id' => 'required'
+            'device_id' => 'required',
+            'user_id' => 'required',
         ]);
         if ($validator->fails()) {
             return response()->json([
@@ -310,7 +311,7 @@ class UserController extends Controller
         }
         DB::beginTransaction();
         try {
-            $device = user_fcm_token::where('device_id', $request->device_id)->first();
+            $device = user_fcm_token::where('device_id', $request->device_id)->where('user_id',$request->user_id)->first();
             if (!$device) {
                 return response()->json([
                     'status_code' => 404,

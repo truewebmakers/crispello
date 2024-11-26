@@ -164,8 +164,11 @@ class NotificationController extends Controller
 
             if (!empty($request->users)) {
                 $fcm_tokens = user_fcm_token::whereIn('user_id', $request->users)->pluck('token')->toArray();
-            } else {
-                $fcm_tokens = user_fcm_token::all()->pluck('token')->toArray();
+            } else { 
+                $userIds = User::where('user_role', 'user')->pluck('id')->toArray();
+                $fcm_tokens = user_fcm_token::whereIn('user_id', $userIds)->pluck('token')->toArray();
+
+                // $fcm_tokens = user_fcm_token::all()->pluck('token')->toArray();
             }
             $validTokens = $this->validateTokens($fcm_tokens, 0, 1,0);
             $distinctUserIds = user_fcm_token::whereIn('token', $validTokens)->distinct()->pluck('user_id');
@@ -182,7 +185,8 @@ class NotificationController extends Controller
                 $validTokens,
                 $title,
                 $body,
-                $image ? 'https://www.certifit.in/crispello/' . $image : null,
+                $image ? 'https://appinventors.co.in/crispello/' . $image : null,
+                // $image ? 'https://www.certifit.in/crispello/' . $image : null,
                 null,
                 null,
                 null,

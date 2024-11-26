@@ -54,9 +54,9 @@ class DeliveryController extends Controller
                     continue;
                 }
                 $order->makeHidden('delivery_charge', 'order_type', 'payment_id', 'table_no','longitude', 'latitude', 'house_no', 'area', 'options_to_reach', 'coupon_id', 'user_id');
-                if ($order->delivery_charge) {
-                    $order->total += $order->delivery_charge;
-                }
+                // if ($order->delivery_charge) {
+                //     $order->total += $order->delivery_charge;
+                // }
                 $order->products = order_product::select('_id', 'name', 'arabic_name', 'size', 'arabic_size', 'quantity')->where('order_id', $req->order_id)->get();
                 $order->products = $order->products->map(function ($product) {
                     $customizations = order_customization::where('order_product_id', $product->_id)->get();
@@ -246,9 +246,9 @@ class DeliveryController extends Controller
                 ], 404);
             }
             $order->makeHidden('user_id', 'delivery_charge', 'order_type', 'payment_id', 'table_no', 'longitude', 'latitude', 'house_no', 'area', 'options_to_reach', 'coupon_id');
-            if ($order->delivery_charge) {
-                $order->total += $order->delivery_charge;
-            }
+            // if ($order->delivery_charge) {
+            //     $order->total += $order->delivery_charge;
+            // }
             $order->delivery_status = $deliveryRequest->status;
             $order->products = order_product::select('_id', 'name', 'arabic_name', 'size', 'arabic_size', 'quantity')->where('order_id', $order->_id)->get();
             $order->products = $order->products->map(function ($product) {
@@ -371,7 +371,7 @@ class DeliveryController extends Controller
                     // $other_driver->status = 'cancelled';
                     delivery_request::where('order_id', $order->_id)->where('driver_id', $other_driver->driver_id)->update(['status' => 'cancelled']);
                     // $other_driver->save();
-                    $fcm_tokens = user_fcm_token::whereNotNull('token')->where('driver_id', $other_driver->driver_id)->pluck('token')->all();
+                    $fcm_tokens = user_fcm_token::whereNotNull('token')->where('user_id', $other_driver->driver_id)->pluck('token')->all();
                     if (!empty($fcm_tokens)) {
                         $validTokens = $this->validateTokens($fcm_tokens, 0, 0, 1);
                         if (!empty($validTokens)) {

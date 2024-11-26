@@ -323,7 +323,7 @@ class CartController extends Controller
                 // Fetch admin details
                 $adminUser = User::where('user_role', 'admin')->first();
                 if ($adminUser) {
-                    $adminAddress = address::where('user_id', $adminUser->_id)->first(['latitude', 'longitude']);
+                    $adminAddress = address::where('user_id', $adminUser->_id)->first(['latitude', 'longitude','area']);
                     $deliverySettings = extra_setting::where('added_by', $adminUser->_id)
                         ->first(['delivery_charge', 'free_upto_km', 'delivery_coverage_km']);
 

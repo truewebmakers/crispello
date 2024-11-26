@@ -294,7 +294,7 @@ class OrderController extends Controller
                                         $delivery_request->driver_id = $driver['_id'];
                                         $delivery_request->status = 'pending';
                                         $delivery_request->save();
-                                        $fcm_tokens = user_fcm_token::whereNotNull('token')->where('driver_id', $driver['_id'])->pluck('token')->all();
+                                        $fcm_tokens = user_fcm_token::whereNotNull('token')->where('user_id', $driver['_id'])->pluck('token')->all();
                                         if (!empty($fcm_tokens)) {
                                             $validTokens = $this->validateTokens($fcm_tokens, 0, 0, 1);
                                             if (!empty($validTokens)) {
@@ -877,7 +877,7 @@ class OrderController extends Controller
             $delivery_request->save();
             DB::commit();
 
-            $fcm_tokens = user_fcm_token::whereNotNull('token')->where('driver_id', $request->driver_id)->pluck('token')->all();
+            $fcm_tokens = user_fcm_token::whereNotNull('token')->where('user_id', $request->driver_id)->pluck('token')->all();
             if (!empty($fcm_tokens)) {
                 $validTokens = $this->validateTokens($fcm_tokens, 0, 0, 1);
                 if (!empty($validTokens)) {
@@ -958,7 +958,7 @@ class OrderController extends Controller
             delivery_request::where('order_id', $order->_id)->where('driver_id', $driver->_id)->update(['status' => 'cancelled']);
             DB::commit();
 
-            $fcm_tokens = user_fcm_token::whereNotNull('token')->where('driver_id', $request->driver_id)->pluck('token')->all();
+            $fcm_tokens = user_fcm_token::whereNotNull('token')->where('user_id', $request->driver_id)->pluck('token')->all();
             if (!empty($fcm_tokens)) {
                 $validTokens = $this->validateTokens($fcm_tokens, 0, 0, 1);
                 if (!empty($validTokens)) {
