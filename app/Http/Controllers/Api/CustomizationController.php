@@ -46,6 +46,7 @@ class CustomizationController extends Controller
             }
             $customization = new customization();
             $customization->name = $name;
+            $customization->arabic_name = $request->arabic_name;
             $customization->price = $request->price;
             $customization->veg = $request->veg;
             $customization->type = $request->type;
@@ -101,13 +102,16 @@ class CustomizationController extends Controller
             if ($request->filled('price')) {
                 $customization->price = $request->price;
             }
+            if ($request->has('arabic_name')) {
+                $customization->arabic_name = $request->arabic_name;
+            }
             if ($request->has('veg')) {
                 $customization->veg = $request->veg;
             }
             if ($request->has('is_available')) {
                 $customization->is_available = $request->is_available;
             }
-            if ($request->file('type')) {
+            if ($request->filled('type')) {
                 $customization->type = $request->type;
             }
             $customization->save();
@@ -144,7 +148,7 @@ class CustomizationController extends Controller
         try {
             $customization = customization::findOrFail($request->customization_id);
             $products = product::whereNotNull('customization')->whereRaw("JSON_CONTAINS(customization, $customization->_id)")->get();
-            $cart_products=cart_product::whereNotNull('customization')->whereRaw("JSON_CONTAINS(customization, $customization->_id)")->get();
+            $cart_products = cart_product::whereNotNull('customization')->whereRaw("JSON_CONTAINS(customization, $customization->_id)")->get();
             foreach ($products as $product) {
                 $customizationIds = json_decode($product->customization, true);
                 // Remove the customization id from the array

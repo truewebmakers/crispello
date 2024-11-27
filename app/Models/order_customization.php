@@ -13,6 +13,7 @@ class order_customization extends Model
 
     protected $fillable = [
         'name',
+        'arabic_name',
         'veg',
         'price',
         'type',

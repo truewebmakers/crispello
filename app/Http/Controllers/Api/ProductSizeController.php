@@ -8,6 +8,7 @@ use App\Models\combo;
 use App\Models\combo_details;
 use App\Models\product;
 use App\Models\product_size;
+use App\Models\RelatedProducts;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
@@ -39,7 +40,6 @@ class ProductSizeController extends Controller
                 ], 404);
             }
             foreach ($request->sizes as $item) {
-                // if (!isset($item['size']) || !isset($item['actual_price']) || !isset($item['selling_price']) || $item['actual_price'] <= 0 || $item['selling_price'] <= 0) {
                 if (
                     !isset($item['size']) || !isset($item['delivery_actual_price']) || !isset($item['delivery_selling_price']) || $item['delivery_actual_price'] <= 0 || $item['delivery_selling_price'] <= 0
                     || !isset($item['pickup_actual_price']) || !isset($item['pickup_selling_price']) || $item['pickup_actual_price'] <= 0 || $item['pickup_selling_price'] <= 0
@@ -78,6 +78,7 @@ class ProductSizeController extends Controller
                 $product_size->dinein_selling_price = trim($item['dinein_selling_price']);
                 $product_size->product_id = $product->_id;
                 $product_size->save();
+                RelatedProducts::where('related_product_id', $product->_id)->delete();
             }
 
             DB::commit();

@@ -13,6 +13,7 @@ class customization extends Model
 
     protected $fillable = [
         'name',
+        'arabic_name',
         'veg',
         'price',
         'is_available',

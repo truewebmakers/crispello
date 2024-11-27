@@ -169,7 +169,9 @@ class OrderController extends Controller
                     $order_product = new order_product();
                     $order_product->order_id = $order->_id;
                     $order_product->name = $product->name;
+                    $order_product->arabic_name = $product->arabic_name;
                     $order_product->size = $product_size ? $product_size->size : null;
+                    $order_product->arabic_size = $product_size ? $product_size->arabic_size : null;
                     $order_product->size_id = $product_size ? $product_size->_id : null;
                     // $order_product->price =  $product_size ? $product_size->selling_price : $product->selling_price;
                     $order_product->quantity = $item->quantity;
@@ -190,6 +192,7 @@ class OrderController extends Controller
                                 $customization = customization::findOrFail($customizationId);
                                 $order_customization = new order_customization();
                                 $order_customization->name = $customization->name;
+                                $order_customization->arabic_name = $customization->arabic_name;
                                 $order_customization->price = $customization->price;
                                 $order_customization->veg = $customization->veg;
                                 $order_customization->type = $customization->type;
@@ -210,6 +213,7 @@ class OrderController extends Controller
                     $order_product = new order_product();
                     $order_product->order_id = $order->_id;
                     $order_product->name = $combo->name;
+                    $order_product->arabic_name = $combo->arabic_name;
                     // $order_product->price = $combo->selling_price;
                     $order_product->quantity = $item->quantity;
                     $order_product->veg = $combo->veg;

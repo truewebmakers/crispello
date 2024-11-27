@@ -8,6 +8,6 @@ use Illuminate\Database\Eloquent\Model;
 class RelatedProducts extends Model
 {
     use HasFactory;
-    protected $fillable = ['product_id', 'related_product_id', 'added_by'];
+    protected $fillable = ['product_id', 'related_product_id', 'added_by','category_id'];
 
 }

@@ -129,12 +129,17 @@ class ProductController extends Controller
             $relatedProductsIds = $request->input('related_product_ids');
 
             if (!empty($relatedProductsIds)) {
-                foreach ($relatedProductsIds as $relatedProduct) {
-                    RelatedProducts::create([
-                        'product_id' => $product->_id,
-                        'related_product_id' => $relatedProduct,
-                        'added_by' => Auth::id(),
-                    ]);
+                foreach ($relatedProductsIds as $relatedProductId) {
+                    $relatedProduct = product::find($relatedProductId);
+                    if($relatedProduct)
+                    {
+                        RelatedProducts::create([
+                            'product_id' => $product->_id,
+                            'related_product_id' => $relatedProductId,
+                            'category_id' => $relatedProduct->product_category_id,
+                            'added_by' => Auth::id(),
+                        ]);
+                    }
                 }
             }
 
@@ -398,12 +403,17 @@ class ProductController extends Controller
 
             if (!empty($relatedProductsIds)) {
                 RelatedProducts::where('product_id', $productId)->delete();
-                foreach ($relatedProductsIds as $relatedProduct) {
-                    RelatedProducts::create([
-                        'product_id' => $productId,
-                        'related_product_id' => $relatedProduct,
-                        'added_by' => Auth::id(),
-                    ]);
+                foreach ($relatedProductsIds as $relatedProductId) {
+                    $relatedProduct = product::find($relatedProductId);
+                    if($relatedProduct)
+                    {
+                        RelatedProducts::create([
+                            'product_id' => $product->_id,
+                            'related_product_id' => $relatedProductId,
+                            'category_id' => $relatedProduct->product_category_id,
+                            'added_by' => Auth::id(),
+                        ]);
+                    }
                 }
             }
             else
@@ -635,6 +645,16 @@ class ProductController extends Controller
                             $customizations = null;
                         }
                         $product->customization = $customizations;
+                        $product->relatedProducts = $product->relatedProducts->map(function ($relatedProduct) {
+                            $category = product_category::find($relatedProduct->product_category_id);
+                            return array_merge(
+                                $relatedProduct->toArray(),
+                                [
+                                    'category' => $category ? $category->toArray() : null,
+                                ]
+                            );
+                        });
+                       
                     })
                     ->makeHidden(['disable', 'only_combo']);
             }
@@ -809,7 +829,7 @@ class ProductController extends Controller
         try {
             if ($request->has('value')) {
                 $value = $request->value;
-                $products = product::where('name', 'LIKE', "%$value%")->where('disable', 0)->where('only_combo', 0)->get()
+                $products = product::with('relatedProducts')->where('name', 'LIKE', "%$value%")->where('disable', 0)->where('only_combo', 0)->get()
                     ->each(function ($product) {
                         $product->combo = 0;
                         $sizes = product_size::where('product_id', $product->_id)->get()->makeHidden('product_id');
@@ -832,6 +852,15 @@ class ProductController extends Controller
                             $customizations = null;
                         }
                         $product->customization = $customizations;
+                        $product->relatedProducts = $product->relatedProducts->map(function ($relatedProduct) {
+                            $category = product_category::find($relatedProduct->product_category_id);
+                            return array_merge(
+                                $relatedProduct->toArray(),
+                                [
+                                    'category' => $category ? $category->toArray() : null,
+                                ]
+                            );
+                        });
                     })
                     ->makeHidden(['disable', 'only_combo']);
 
@@ -872,7 +901,7 @@ class ProductController extends Controller
                     return $combo;
                 });
             } else {
-                $products = product::where('disable', 0)->where('only_combo', 0)->get()
+                $products = product::with('relatedProducts')->where('disable', 0)->where('only_combo', 0)->get()
                     ->each(function ($product) {
                         $product->combo = 0;
                         $sizes = product_size::where('product_id', $product->_id)->get()->makeHidden('product_id');
@@ -895,6 +924,15 @@ class ProductController extends Controller
                             $customizations = null;
                         }
                         $product->customization = $customizations;
+                        $product->relatedProducts = $product->relatedProducts->map(function ($relatedProduct) {
+                            $category = product_category::find($relatedProduct->product_category_id);
+                            return array_merge(
+                                $relatedProduct->toArray(),
+                                [
+                                    'category' => $category ? $category->toArray() : null,
+                                ]
+                            );
+                        });
                     })
                     ->makeHidden(['disable', 'only_combo']);
 
@@ -1117,7 +1155,17 @@ class ProductController extends Controller
     public function getallproductsrelated()
     {
         try {
-            $products = product::get(['name','arabic_name', '_id', 'image', 'product_category_id']);
+            $categories = product_category::with(['products' => function ($query) {
+                $query->doesntHave('productSizes');  // Filter products with no sizes
+                $query->select('_id', 'name', 'arabic_name', 'image', 'product_category_id');
+            }])->get();
+    
+            // Filter out categories that have no products after the filtering
+            $products = $categories->filter(function ($category) {
+                return $category->products->isNotEmpty();  // Only keep categories with products
+            })->values();
+            // $products = product_category::with('products:_id,name,arabic_name,_id,image,product_category_id')->get();
+            // $products = product::get(['name','arabic_name', '_id', 'image', 'product_category_id']);
 
             return response()->json([
                 'status_code' => 200,
