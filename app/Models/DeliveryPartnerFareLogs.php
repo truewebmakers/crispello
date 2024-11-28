@@ -18,6 +18,12 @@ class DeliveryPartnerFareLogs extends Model
         'destination_long',
         'total_km',
         'total_fare',
-        'status'
+        'status',
+        'currency'
     ];
+    public function order()
+    {
+        return $this->belongsTo(order::class, 'order_id');
+    }
+
 }

@@ -246,9 +246,11 @@ Route::prefix('delivery')->middleware(['auth:delivery_driver', 'scope:delivery_d
     Route::get('request/get',[DeliveryController::class,'getDeliveryRequest']);
     Route::post('request/status/change',[DeliveryController::class,'changeDeliveryRequestStatus']);
 
-    Route::get('log/getall', [DeliveryPartnerFareSettingController::class, 'DeliveryPartnerStorelogsget']);
-    Route::get('log/store', [DeliveryPartnerFareSettingController::class, 'DeliveryPartnerStorelogs']);
-    Route::get('log/update/{id}', [DeliveryPartnerFareSettingController::class, 'UpdateLogs']);
+    Route::get('log/getall/{partnerId}', [DeliveryPartnerFareSettingController::class, 'DeliveryPartnerStorelogsget']);
+    Route::post('log/store', [DeliveryPartnerFareSettingController::class, 'DeliveryPartnerStorelogs']);
+    Route::post('log/update/{id}', [DeliveryPartnerFareSettingController::class, 'UpdateLogs']);
+
+    Route::get('order/history/getall', [DeliveryController::class, 'getOrderHistoryOfDeliveryPartner']);
 
 
 

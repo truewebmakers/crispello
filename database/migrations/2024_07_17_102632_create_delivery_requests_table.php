@@ -14,7 +14,7 @@ return new class extends Migration
         Schema::create('delivery_requests', function (Blueprint $table) {
             $table->unsignedBigInteger('order_id');
             $table->unsignedBigInteger('driver_id');
-            $table->enum('status', ['pending', 'accepted', 'cancelled','rejected'])->default('pending')->nullable();
+            $table->enum('status', ['pending', 'accepted', 'cancelled','rejected','completed'])->default('pending')->nullable();
             $table->primary(['order_id', 'driver_id']);
             $table->foreign('order_id')->references('_id')->on('orders');
             $table->foreign('driver_id')->references('_id')->on('users');

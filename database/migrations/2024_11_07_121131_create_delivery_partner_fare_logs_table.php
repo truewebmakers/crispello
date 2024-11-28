@@ -23,7 +23,9 @@ return new class extends Migration
             $table->string('destination_long',191)->nullable();
             $table->string('total_km',191)->nullable();
             $table->string('total_fare',191)->nullable();
-            $table->enum('status',['delivered','in-progress','out-of-delivery'])->nullable();
+            $table->enum('currency', ['SAR', 'USD','INR','AUD','AED'])->default('SAR');
+            $table->enum('status',['pending','credit','in-progress','withdraw'])->nullable();
+            // $table->enum('status',['delivered','in-progress','out-of-delivery'])->nullable();
 
             $table->timestamps();
         });

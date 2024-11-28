@@ -10,6 +10,8 @@ use App\Models\admin_fcm_token;
 use App\Models\delivery_driver;
 use App\Models\delivery_fcm_token;
 use App\Models\delivery_request;
+use App\Models\DeliveryPartnerFareLogs;
+use App\Models\DeliveryPartnerFareSetting;
 use App\Models\order;
 use App\Models\order_customization;
 use App\Models\order_product;
@@ -46,17 +48,14 @@ class DeliveryController extends Controller
                     'message' => 'Driver not found'
                 ], 404);
             }
-            $deliveryRequest = delivery_request::where('driver_id', $driver->_id)->where('status', 'pending')->get();
+            $deliveryRequest = delivery_request::where('driver_id', $driver->_id)->whereIn('status', ['pending', 'accepted'])->get();
             $result = [];
             foreach ($deliveryRequest as $req) {
                 $order = order::find($req->order_id);
                 if (!$order) {
                     continue;
                 }
-                $order->makeHidden('delivery_charge', 'order_type', 'payment_id', 'table_no','longitude', 'latitude', 'house_no', 'area', 'options_to_reach', 'coupon_id', 'user_id');
-                // if ($order->delivery_charge) {
-                //     $order->total += $order->delivery_charge;
-                // }
+                $order->makeHidden('delivery_charge', 'order_type', 'payment_id', 'table_no', 'longitude', 'latitude', 'house_no', 'area', 'options_to_reach', 'coupon_id', 'user_id');
                 $order->products = order_product::select('_id', 'name', 'arabic_name', 'size', 'arabic_size', 'quantity')->where('order_id', $req->order_id)->get();
                 $order->products = $order->products->map(function ($product) {
                     $customizations = order_customization::where('order_product_id', $product->_id)->get();
@@ -93,18 +92,28 @@ class DeliveryController extends Controller
                     'latitude' => $adminAddress->latitude ?? null,
                     'longitude' => $adminAddress->longitude ?? null,
                     'area' => $adminAddress->area ?? null,
-                    'name' => 'Crispello'
+                    'name' => $adminUser->name
                 ];
-                // $restaurant->name = "Crispello";
                 if ($user->latitude && $user->longitude && $restaurant->latitude && $restaurant->longitude) {
                     $distance = $this->calculateDistanceWithDuration(['latitude' => $restaurant->latitude, 'longitude' => $restaurant->longitude], ['latitude' => $user->latitude, 'longitude' => $user->longitude]);
                     $order->distance = $distance['distance']['text'];
                     $order->duration = $distance['duration']['text'];
+                    $order->distance_value = round($distance['distance']['value'] / 1000);
+                    $deliveryFareSetting = DeliveryPartnerFareSetting::where('added_by', $restaurant->_id)->first();
+                    if ($deliveryFareSetting && isset($distance['distance']['value']) && $distance['distance']['value'] !== null) {
+                        $distanceInKm = round($distance['distance']['value'] / 1000);
+                        $order->delivery_partner_earning = $deliveryFareSetting->fare_per_km * $distanceInKm;
+                        $order->delivery_partner_earning_currency = $deliveryFareSetting->currency;
+                    } else {
+                        $order->delivery_partner_earning = 0;
+                        $order->delivery_partner_earning_currency = 'INR';
+                    }
                 }
                 $result[] = [
                     'order' => $order,
                     'user' => $user,
-                    'restaurant' => $restaurant
+                    'restaurant' => $restaurant,
+                    'delivery_request' => $req
                 ];
             }
             return response()->json([
@@ -142,7 +151,7 @@ class DeliveryController extends Controller
                     'message' => 'Driver not found'
                 ], 404);
             }
-            $deliveryRequest = delivery_request::where('driver_id', $driver->_id)->whereIn('status', ['accepted', 'rejected'])->get();
+            $deliveryRequest = delivery_request::where('driver_id', $driver->_id)->whereIn('status', ['completed', 'rejected'])->get();
             $result = [];
             foreach ($deliveryRequest as $req) {
                 $order = order::find($req->order_id);
@@ -160,11 +169,6 @@ class DeliveryController extends Controller
                 $user->house_no = $order->house_no;
                 $user->area = $order->area;
                 $user->options_to_reach = $order->options_to_reach;
-                // $restaurant = admin::select('_id', 'phoneno', 'latitude', 'longitude')->first();
-                // if (!$restaurant) {
-                //     continue;
-                // }
-                // $restaurant->name = "Crispello";
                 $adminUser = User::where('user_role', 'admin')->first();
                 if (!$adminUser) {
                     continue;
@@ -182,7 +186,7 @@ class DeliveryController extends Controller
                     'latitude' => $adminAddress->latitude ?? null,
                     'longitude' => $adminAddress->longitude ?? null,
                     'area' => $adminAddress->area ?? null,
-                    'name' => 'Crispello'
+                    'name' => $adminUser->name
                 ];
                 if ($user->latitude && $user->longitude && $restaurant->latitude && $restaurant->longitude) {
                     $distance = $this->calculateDistanceWithDuration(['latitude' => $restaurant->latitude, 'longitude' => $restaurant->longitude], ['latitude' => $user->latitude, 'longitude' => $user->longitude]);
@@ -246,9 +250,6 @@ class DeliveryController extends Controller
                 ], 404);
             }
             $order->makeHidden('user_id', 'delivery_charge', 'order_type', 'payment_id', 'table_no', 'longitude', 'latitude', 'house_no', 'area', 'options_to_reach', 'coupon_id');
-            // if ($order->delivery_charge) {
-            //     $order->total += $order->delivery_charge;
-            // }
             $order->delivery_status = $deliveryRequest->status;
             $order->products = order_product::select('_id', 'name', 'arabic_name', 'size', 'arabic_size', 'quantity')->where('order_id', $order->_id)->get();
             $order->products = $order->products->map(function ($product) {
@@ -299,12 +300,14 @@ class DeliveryController extends Controller
                 'latitude' => $adminAddress->latitude ?? null,
                 'longitude' => $adminAddress->longitude ?? null,
                 'area' => $adminAddress->area ?? null,
-                'name' => 'Crispello'
+                'name' => $adminUser->name
             ];
+            $deliveryFare=DeliveryPartnerFareLogs::where('order_id',$order->_id)->where('delivery_partner_id',$driver->_id)->where('status','pending')->first();
             $data = [
                 'order' => $order,
                 'user' => $user,
-                'restaurant' => $restaurant
+                'restaurant' => $restaurant,
+                'delivery_fare' => $deliveryFare,
             ];
             return response()->json([
                 'status_code' => 200,
@@ -452,6 +455,44 @@ class DeliveryController extends Controller
             return response()->json([
                 'status_code' => 500,
                 'message' => 'Failed to change delivery request status'
+            ], 500);
+        }
+    }
+
+    /**
+     * Get all orders of driver
+     */
+    public function getOrderHistoryOfDeliveryPartner(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'driver_id' => 'required'
+        ]);
+        if ($validator->fails()) {
+            return response([
+                'status_code' => 400,
+                'message' => $validator->messages()
+            ], 400);
+        }
+        try {
+            $fareLogs = DeliveryPartnerFareLogs::select(
+                'delivery_partner_fare_logs.*',
+                'orders.order_status',
+                'orders.order_date'
+            )
+            ->where('delivery_partner_fare_logs.delivery_partner_id', $request->driver_id)
+            ->whereIn('delivery_partner_fare_logs.status', ['pending', 'credit'])
+            ->leftJoin('orders', 'delivery_partner_fare_logs.order_id', '=', 'orders._id')
+            ->get();
+            
+            return response()->json([
+                'status_code' => 200,
+                'data' => $fareLogs,
+                'message' => 'Orders retrieved successfully'
+            ], 200);
+        } catch (\Exception $e) {
+            return response()->json([
+                'status_code' => 500,
+                'message' => 'Failed to retrieve orders'
             ], 500);
         }
     }

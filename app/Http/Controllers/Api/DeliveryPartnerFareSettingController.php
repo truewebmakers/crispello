@@ -1,8 +1,9 @@
 <?php
 
 namespace App\Http\Controllers\Api;
+
 use App\Http\Controllers\Controller;
-use App\Models\{DeliveryPartnerFareSetting,DeliveryPartnerFareLogs};
+use App\Models\{DeliveryPartnerFareSetting, DeliveryPartnerFareLogs};
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Validator;
@@ -47,7 +48,6 @@ class DeliveryPartnerFareSettingController extends Controller
                 'status_code' => 200,
                 'messsage' => 'Fare setting added successfully'
             ], 200);
-
         } catch (\Throwable $th) {
             //throw $th;
             return response()->json([
@@ -55,7 +55,6 @@ class DeliveryPartnerFareSettingController extends Controller
                 'messsage' => 'There is some error'
             ], 500);
         }
-
     }
 
     public function update(Request $request, $id)
@@ -80,7 +79,6 @@ class DeliveryPartnerFareSettingController extends Controller
                 'status_code' => 200,
                 'messsage' => 'Fare setting update successfully'
             ], 200);
-
         } catch (\Throwable $th) {
             //throw $th;
             return response()->json([
@@ -98,14 +96,19 @@ class DeliveryPartnerFareSettingController extends Controller
         //
     }
 
-    public function DeliveryPartnerStorelogsget(Request $request,$partnerId)
+    public function DeliveryPartnerStorelogsget(Request $request, $partnerId)
     {
-      $data =  DeliveryPartnerFareLogs::where(['delivery_partner_id' => $partnerId])->get();
-      return response()->json([
-        'message' => 'Delivery created successfully.',
-        'data' => $data
-    ], 201);
-
+        $data =  DeliveryPartnerFareLogs::where(['delivery_partner_id' => $partnerId])
+        ->where('status', '!=', 'pending')->get();
+        $totalBalance = DeliveryPartnerFareLogs::where('delivery_partner_id', $partnerId)
+        ->where('status', 'credit')
+        ->sum('total_fare');
+        return response()->json([
+            'message' => 'Logs retrieved successfully.',
+            'status_code' => 200,
+            'data' => $data,
+            'total_balance' => $totalBalance,
+        ], 200);
     }
 
 
@@ -123,7 +126,7 @@ class DeliveryPartnerFareSettingController extends Controller
             'destination_long' => 'nullable|string|max:191',
             'total_km' => 'nullable|numeric',
             'total_fare' => 'nullable|numeric',
-            'status' => 'nullable|in:delivered,in-progress,out-of-delivery',
+            'status' => 'nullable|in:pending,credit,in-progress,withdraw',
         ]);
 
         // If validation fails, return with errors
@@ -147,8 +150,9 @@ class DeliveryPartnerFareSettingController extends Controller
         // Return a success response
         return response()->json([
             'message' => 'Delivery created successfully.',
-            'data' => $delivery
-        ], 201);
+            'data' => $delivery,
+            'status_code' => 200
+        ], 200);
     }
 
 
@@ -156,7 +160,7 @@ class DeliveryPartnerFareSettingController extends Controller
     {
         // Validate the incoming request
         $validator = Validator::make($request->all(), [
-            'status' => 'nullable|in:delivered,in-progress,out-of-delivery',
+            'status' => 'nullable|in:credit,in-progress,withdraw',
         ]);
 
         // If validation fails, return with errors
@@ -165,14 +169,15 @@ class DeliveryPartnerFareSettingController extends Controller
         }
 
         // Create a new delivery record
-        $delivery = DeliveryPartnerFareLogs::where('id',$request->id)->update([
+        $delivery = DeliveryPartnerFareLogs::where('id', $request->id)->update([
             'status' => $request->status,
         ]);
 
         // Return a success response
         return response()->json([
             'message' => 'Delivery updated successfully.',
+            'status_code' => 200,
             'data' => $delivery
-        ], 201);
+        ], 200);
     }
 }

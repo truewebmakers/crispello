@@ -505,6 +505,7 @@ class OrderController extends Controller
             if ($request->has('admin') && $request->admin === 0 && $order->order_status === 'delivered') {
                 if ($order->driver_id) {
                     User::where('_id', $order->driver_id)->update(['available' => 1]);
+                    delivery_request::where('driver_id',$order->driver_id)->where('order_id',$order->_id)->update(['status'=>'completed']);
                 }
             }
             DB::commit();
