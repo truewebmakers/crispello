@@ -31,7 +31,9 @@ class User extends Authenticatable
         'aniversary_date',
         'gender',
         'disable',
-        'user_role'
+        'user_role',
+        'online',
+        'available'
     ];
 
     public function getAuthIdentifierName()

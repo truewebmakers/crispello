@@ -29,6 +29,9 @@ class order extends Model
         'area',
         'options_to_reach',
         'coupon_id',
+        'used_loyalty_points',
+        'wallet_amount'
+
     ];
 
     public function user()

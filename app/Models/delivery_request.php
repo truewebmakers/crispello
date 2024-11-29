@@ -14,7 +14,7 @@ class delivery_request extends Model
     protected $hidden = ['created_at', 'updated_at'];
     protected $fillable = [
         'order_id',
-        'order_id',
+        'driver_id',
         'status',
     ];
 
